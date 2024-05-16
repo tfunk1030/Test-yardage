@@ -97,6 +97,7 @@ h1 {
 .result {
     font-weight: bold;
     color: #03DAC6;
+    margin-left: 10px;
 }
 
 /* Wind Adjustment Screen */
