@@ -14,8 +14,8 @@ body {
 }
 
 .container {
-    width: 100%;
-    max-width: 500px;
+    width: 90%;
+    max-width: 400px;
     margin: 20px auto;
     background: #1E1E1E;
     padding: 20px;
@@ -26,7 +26,7 @@ body {
 
 h1 {
     color: #03DAC6;
-    font-size: 2.2em;
+    font-size: 1.8em;
     margin-bottom: 20px;
 }
 
@@ -63,11 +63,11 @@ h1 {
 .btn-group button {
     background-color: #03DAC6;
     color: #121212;
-    padding: 10px 20px;
+    padding: 12px 20px;
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    margin: 10px;
+    margin: 10px 0;
     font-size: 1em;
     transition: background-color 0.3s ease;
 }
@@ -140,7 +140,7 @@ select {
 
 button {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border: none;
     border-radius: 5px;
     background-color: #03DAC6;
@@ -153,4 +153,30 @@ button {
 
 button:hover {
     background-color: #018786;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+    h1 {
+        font-size: 1.6em;
+    }
+
+    .input-section label, .output-section label {
+        font-size: 0.9em;
+    }
+
+    .input-section input, .output-section input, select, button {
+        font-size: 0.9em;
+        padding: 8px;
+    }
+
+    .btn-group button {
+        font-size: 0.9em;
+        padding: 10px;
+    }
+
+    .club-row input {
+        font-size: 0.9em;
+        padding: 8px;
+    }
 }
