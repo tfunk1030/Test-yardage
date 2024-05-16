@@ -9,7 +9,6 @@
 </head>
 <body>
 
-<!-- Main Carry Distance Calculator Screen -->
 <div class="container">
     <h1>Carry Distance Calculator</h1>
 
@@ -23,27 +22,24 @@
         <label for="temperature">Temperature</label>
         <input type="number" id="temperature" value="70">
     </div>
-        
+
     <div id="clubs">
-            <!-- Repeated club rows for your clubs -->
-            <!-- Club Row 1 -->
-            <div class="club-row">
-                <input type="text" class="club-name" placeholder="Club Name">
-                <input type="number" class="club-distance" placeholder="Distance">
-                <span class="result">Adjusted: <span class="adjusted-distance"></span> yards</span>
-            </div>
-            <!-- Repeat the above block for all your clubs, change row numbers as needed -->
+        <!-- Club Rows -->
+        <div class="club-row">
+            <input type="text" class="club-name" placeholder="Club Name">
+            <input type="number" class="club-distance" placeholder="Distance">
+            <span class="result">Adjusted: <span class="adjusted-distance"></span> yards</span>
         </div>
+    </div>
 
     <div class="btn-group">
         <button onclick="fetchWeatherData()">Use Current Weather</button>
         <button onclick="calculateAllDistances()">Compute All</button>
     </div>
-    
+
     <button onclick="toggleScreens()">Go to Wind Adjustment</button>
 </div>
 
-<!-- Wind Adjustment Screen -->
 <div class="container wind-adjustment-screen" style="display: none;">
     <h1>Wind Adjustment</h1>
 
@@ -82,4 +78,3 @@
 <script src="script.js"></script>
 </body>
 </html>
-
