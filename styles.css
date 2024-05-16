@@ -1,8 +1,10 @@
 /* styles.css */
+
+/* General Styles */
 body {
     font-family: 'Lato', sans-serif;
-    background-color: #f4f4f4;
-    color: #333;
+    background-color: #1d1f27;
+    color: #dcdde1;
     margin: 0;
     padding: 0;
 }
@@ -11,17 +13,20 @@ body {
     width: 90%;
     max-width: 800px;
     margin: 20px auto;
-    background: #fff;
+    background: #2f3640;
     padding: 20px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    border-radius: 12px;
 }
 
 h1 {
     text-align: center;
-    color: #0056b3;
+    color: #00a8ff;
+    font-size: 2.5em;
+    margin-bottom: 20px;
 }
 
+/* Input Section */
 .input-section {
     margin: 20px 0;
 }
@@ -30,36 +35,43 @@ h1 {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    color: #00a8ff;
 }
 
 .input-section input {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
-    border: 1px solid #ddd;
+    border: none;
     border-radius: 4px;
+    background: #353b48;
+    color: #dcdde1;
+    font-size: 1em;
 }
 
+/* Button Styles */
 .btn-group {
     text-align: center;
     margin: 20px 0;
 }
 
 .btn-group button {
-    background-color: #0056b3;
+    background-color: #00a8ff;
     color: #fff;
     padding: 10px 20px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     margin: 5px;
-    font-size: 16px;
+    font-size: 1.1em;
+    transition: background-color 0.3s ease;
 }
 
 .btn-group button:hover {
-    background-color: #004494;
+    background-color: #0097e6;
 }
 
+/* Club Row Styles */
 .club-row {
     display: flex;
     align-items: center;
@@ -70,15 +82,19 @@ h1 {
     flex: 1;
     padding: 10px;
     margin-right: 10px;
-    border: 1px solid #ddd;
+    border: none;
     border-radius: 4px;
+    background: #353b48;
+    color: #dcdde1;
+    font-size: 1em;
 }
 
 .result {
     font-weight: bold;
-    color: #0056b3;
+    color: #00a8ff;
 }
 
+/* Wind Adjustment Screen */
 .wind-adjustment-screen {
     display: none;
 }
@@ -91,12 +107,34 @@ h1 {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    color: #00a8ff;
 }
 
 .output-section input {
     width: 100%;
     padding: 10px;
     margin-bottom: 15px;
-    border: 1px solid #ddd;
+    border: none;
     border-radius: 4px;
+    background: #353b48;
+    color: #dcdde1;
+    font-size: 1em;
+}
+
+/* Additional Styles for a Modern Look */
+select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: none;
+    border-radius: 4px;
+    background: #353b48;
+    color: #dcdde1;
+    font-size: 1em;
+}
+
+button {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
 }
