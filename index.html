@@ -1,43 +1,85 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Golf Yardage App</title>
+    <title>Golf Ball Carry Distance Calculator</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <h1>Golf Yardage App</h1>
-    </header>
-    <main>
-        <form id="distanceForm">
-            <label for="distance">Shot Distance (yards):</label>
-            <input type="number" id="distance" name="distance" required>
-            
-            <label for="altitude">Altitude (feet):</label>
-            <input type="number" id="altitude" name="altitude" required>
-            
-            <label for="humidity">Humidity (%):</label>
-            <input type="number" id="humidity" name="humidity" required>
-            
-            <label for="temperature">Temperature (°F):</label>
-            <input type="number" id="temperature" name="temperature" required>
-            
-            <label for="windSpeed">Wind Speed (mph):</label>
-            <input type="number" id="windSpeed" name="windSpeed" required>
-            
-            <label for="windDirection">Wind Direction (°):</label>
-            <input type="number" id="windDirection" name="windDirection" required>
-            
-            <button type="button" onclick="calculateDistance()">Calculate</button>
-        </form>
-        <div id="result"></div>
-    </main>
-    <footer>
-        <p>&copy; 2024 Golf Yardage App</p>
-    </footer>
-    <script src="script.js"></script>
+
+<!-- Main Carry Distance Calculator Screen -->
+<div class="container">
+    <h1>Carry Distance Calculator</h1>
+
+    <div class="input-section">
+        <label for="altitude">Altitude</label>
+        <input type="number" id="altitude" value="0">
+
+        <label for="humidity">Humidity</label>
+        <input type="number" id="humidity" value="50">
+
+        <label for="temperature">Temperature</label>
+        <input type="number" id="temperature" value="70">
+    </div>
+        
+    <div id="clubs">
+            <!-- Repeated club rows for your clubs -->
+            <!-- Club Row 1 -->
+            <div class="club-row">
+                <input type="text" class="club-name" placeholder="Club Name">
+                <input type="number" class="club-distance" placeholder="Distance">
+                <span class="result">Adjusted: <span class="adjusted-distance"></span> yards</span>
+            </div>
+            <!-- Repeat the above block for all your clubs, change row numbers as needed -->
+        </div>
+
+    <div class="btn-group">
+        <button onclick="fetchWeatherData()">Use Current Weather</button>
+        <button onclick="calculateAllDistances()">Compute All</button>
+    </div>
+    
+    <button onclick="toggleScreens()">Go to Wind Adjustment</button>
+</div>
+
+<!-- Wind Adjustment Screen -->
+<div class="container wind-adjustment-screen" style="display: none;">
+    <h1>Wind Adjustment</h1>
+
+    <div class="input-section">
+        <label for="shot-distance">Shot Distance (yards):</label>
+        <input type="number" id="shot-distance" value="150">
+
+        <label for="wind-strength">Wind Strength (mph):</label>
+        <input type="number" id="wind-strength" value="0">
+
+        <label for="wind-direction">Wind Direction:</label>
+        <select id="wind-direction">
+            <option value="N">North</option>
+            <option value="NE">North-East</option>
+            <option value="E">East</option>
+            <option value="SE">South-East</option>
+            <option value="S">South</option>
+            <option value="SW">South-West</option>
+            <option value="W">West</option>
+            <option value="NW">North-West</option>
+        </select>
+    </div>
+
+    <div class="output-section">
+        <label for="adjusted-distance">Adjusted Distance:</label>
+        <input type="number" id="adjusted-distance" readonly>
+
+        <label for="adjusted-aim">Adjusted Aim:</label>
+        <input type="text" id="adjusted-aim" readonly>
+    </div>
+
+    <button onclick="calculateWindAdjustment()">Compute Adjustment</button>
+    <button onclick="toggleScreens()">Go Back</button>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
+

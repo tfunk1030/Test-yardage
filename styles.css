@@ -1,59 +1,100 @@
-
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f5f5f5;
+    font-family: 'Lato', sans-serif;
+    background-color: #e7f2e1; /* Soft Green */
     color: #333;
-    margin: 0;
-    padding: 0;
-}
-
-header, footer {
-    background-color: #4CAF50;
-    color: white;
-    text-align: center;
-    padding: 1em 0;
-}
-
-main {
     padding: 20px;
-    max-width: 600px;
-    margin: auto;
-    background: white;
+    margin: 0;
+}
+
+.container {
+    max-width: 400px;
+    margin: 20px auto;
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #0a3d0c; /* Deep Green for Headings */
+}
+
+.input-section label, .output-section label {
+    display: block;
+    font-weight: bold;
+    margin-top: 10px;
+    color: #555;
+}
+
+.input-section input, .output-section input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-top: 5px;
+    border: 1px solid #e0e0e0;
     border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    font-size: 16px;
+    background-color: #f7e5b5; /* Muted Beige for Input Fields */
 }
 
-form {
+.btn-group {
+    margin-top: 20px;
     display: flex;
-    flex-direction: column;
-}
-
-label {
-    margin: 10px 0 5px;
-}
-
-input {
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    justify-content: space-between;
 }
 
 button {
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
+    flex: 1;
+    margin: 0 10px;
+    background-color: #0a3d0c; /* Deep Green for Buttons */
+    color: #fff;
+    font-size: 16px;
+    padding: 10px 12px;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
+    transition: background-color 0.3s, transform 0.3s;
     cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+button:last-child {
+    margin-right: 0;
 }
 
 button:hover {
-    background-color: #45a049;
+    background-color: #005207; /* Slightly Darker Green on Hover */
+    transform: translateY(-2px); /* Slight upward lift on hover */
 }
 
-#result {
-    margin-top: 20px;
-    font-size: 1.2em;
-    font-weight: bold;
+.club-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.club-name, .club-distance {
+    width: 30%; /* Adjust as needed */
+    margin-right: 10px;
+}
+
+.result {
+    flex: 1;
+    text-align: right;
+}
+
+.wind-adjustment-screen {
+    display: none; /* Initially hidden, can be shown with JavaScript or user action */
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: #f7e5b5;
 }
