@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golf Yardage App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Golf Yardage App</h1>
+    </header>
+    <main>
+        <form id="distanceForm">
+            <label for="distance">Shot Distance (yards):</label>
+            <input type="number" id="distance" name="distance" required>
+            
+            <label for="altitude">Altitude (feet):</label>
+            <input type="number" id="altitude" name="altitude" required>
+            
+            <label for="humidity">Humidity (%):</label>
+            <input type="number" id="humidity" name="humidity" required>
+            
+            <label for="temperature">Temperature (°F):</label>
+            <input type="number" id="temperature" name="temperature" required>
+            
+            <label for="windSpeed">Wind Speed (mph):</label>
+            <input type="number" id="windSpeed" name="windSpeed" required>
+            
+            <label for="windDirection">Wind Direction (°):</label>
+            <input type="number" id="windDirection" name="windDirection" required>
+            
+            <button type="button" onclick="calculateDistance()">Calculate</button>
+        </form>
+        <div id="result"></div>
+    </main>
+    <footer>
+        <p>&copy; 2024 Golf Yardage App</p>
+    </footer>
+    <script src="script.js"></script>
+</body>
+</html>
