@@ -3,77 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Golf Ball Carry Distance Calculator - Calculate adjusted distances based on weather conditions">
+    <meta name="theme-color" content="#121212">
     <title>Golf Ball Carry Distance Calculator</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <main class="container">
+        <h1>Carry Distance Calculator</h1>
 
-<div class="container">
-    <h1>Carry Distance Calculator</h1>
+        <div class="input-section" role="form" aria-label="Weather conditions input">
+            <label for="altitude" data-tooltip="Higher altitude increases distance due to thinner air">Altitude (feet)</label>
+            <input type="number" id="altitude" value="0" min="0" max="15000" step="1" aria-label="Enter altitude in feet">
 
-    <div class="input-section">
-        <label for="altitude">Altitude</label>
-        <input type="number" id="altitude" value="0">
+            <label for="humidity" data-tooltip="Higher humidity slightly increases distance as humid air is less dense">Humidity (%)</label>
+            <input type="number" id="humidity" value="50" min="0" max="100" step="1" aria-label="Enter humidity percentage">
 
-        <label for="humidity">Humidity</label>
-        <input type="number" id="humidity" value="50">
-
-        <label for="temperature">Temperature</label>
-        <input type="number" id="temperature" value="70">
-    </div>
-
-    <div id="clubs">
-        <!-- Club Rows -->
-        <div class="club-row">
-            <input type="number" class="club-distance" placeholder="Distance">
-            <span class="result">Adjusted: <span class="adjusted-distance"></span> yards</span>
+            <label for="temperature" data-tooltip="Higher temperature increases distance due to less dense air">Temperature (°F)</label>
+            <input type="number" id="temperature" value="70" min="-20" max="120" step="1" aria-label="Enter temperature in Fahrenheit">
         </div>
+
+        <div id="clubs" role="region" aria-label="Club distances">
+            <!-- Club Rows -->
+            <div class="club-row">
+                <input type="number" class="club-distance" placeholder="Distance" min="0" max="400" step="1" aria-label="Enter club distance">
+                <span class="result">Adjusted: <input type="text" class="adjusted-value" readonly value="0" aria-label="Adjusted distance"></span>
+            </div>
+        </div>
+
+        <div id="main-buttons" class="btn-group">
+            <button type="button" onclick="fetchWeatherData()" aria-label="Use current weather conditions">Use Current Weather</button>
+            <button type="button" onclick="calculateAllDistances()" aria-label="Calculate all distances">Compute All</button>
+            <button type="button" onclick="toggleScreens()" aria-label="Switch to wind adjustment calculator">Go to Wind Calc</button>
+        </div>
+    </main>
+
+    <div id="wind-screen" class="container wind-adjustment-screen" role="region" aria-label="Wind adjustment calculator" style="display: none;">
+        <h1>Wind Adjustment</h1>
+
+        <div class="input-section" role="form" aria-label="Wind adjustment inputs">
+            <label for="shot-distance">Shot Distance (yards)</label>
+            <input type="number" id="shot-distance" value="150" min="0" max="400" step="1" aria-label="Enter shot distance in yards">
+
+            <label for="wind-strength">Wind Strength (mph)</label>
+            <input type="number" id="wind-strength" value="0" min="0" max="50" step="1" aria-label="Enter wind strength in miles per hour">
+
+            <label for="wind-direction">Wind Direction</label>
+            <select id="wind-direction" aria-label="Select wind direction">
+                <option value="N">North</option>
+                <option value="NE">North-East</option>
+                <option value="E">East</option>
+                <option value="SE">South-East</option>
+                <option value="S">South</option>
+                <option value="SW">South-West</option>
+                <option value="W">West</option>
+                <option value="NW">North-West</option>
+            </select>
+        </div>
+
+        <div class="output-section">
+            <label for="adjusted-distance">Adjusted Distance</label>
+            <input type="number" id="adjusted-distance" readonly aria-label="Calculated adjusted distance">
+
+            <label for="adjusted-aim">Adjusted Aim</label>
+            <input type="text" id="adjusted-aim" readonly aria-label="Calculated aim adjustment">
+        </div>
+
+        <button type="button" onclick="calculateWindAdjustment()" aria-label="Calculate wind adjustment">Compute Adjustment</button>
+        <button type="button" onclick="toggleScreens()" aria-label="Return to distance calculator">Go Back</button>
     </div>
 
-    <div class="btn-group">
-        <button onclick="fetchWeatherData()">Use Current Weather</button>
-        <button onclick="calculateAllDistances()">Compute All</button>
-    </div>
-
-    <button onclick="toggleScreens()">Go to Wind Adjustment</button>
-</div>
-
-<div class="container wind-adjustment-screen" style="display: none;">
-    <h1>Wind Adjustment</h1>
-
-    <div class="input-section">
-        <label for="shot-distance">Shot Distance (yards):</label>
-        <input type="number" id="shot-distance" value="150">
-
-        <label for="wind-strength">Wind Strength (mph):</label>
-        <input type="number" id="wind-strength" value="0">
-
-        <label for="wind-direction">Wind Direction:</label>
-        <select id="wind-direction">
-            <option value="N">North</option>
-            <option value="NE">North-East</option>
-            <option value="E">East</option>
-            <option value="SE">South-East</option>
-            <option value="S">South</option>
-            <option value="SW">South-West</option>
-            <option value="W">West</option>
-            <option value="NW">North-West</option>
-        </select>
-    </div>
-
-    <div class="output-section">
-        <label for="adjusted-distance">Adjusted Distance:</label>
-        <input type="number" id="adjusted-distance" readonly>
-
-        <label for="adjusted-aim">Adjusted Aim:</label>
-        <input type="text" id="adjusted-aim" readonly>
-    </div>
-
-    <button onclick="calculateWindAdjustment()">Compute Adjustment</button>
-    <button onclick="toggleScreens()">Go Back</button>
-</div>
-
-<script src="script.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Verify script loading
+        console.log('Main script loaded');
+        
+        // Add test button
+        function addTestButton() {
+            console.log('Adding test button...');
+            const buttonGroup = document.getElementById('main-buttons');
+            if (!buttonGroup) {
+                console.error('Button group not found');
+                return;
+            }
+            
+            const testButton = document.createElement('button');
+            testButton.textContent = 'Run Tests';
+            testButton.onclick = async function() {
+                // Simple test function
+                console.log('Running test...');
+                const tempInput = document.getElementById('temperature');
+                const humidityInput = document.getElementById('humidity');
+                const altitudeInput = document.getElementById('altitude');
+                const clubRow = document.querySelector('.club-row');
+                
+                if (!tempInput || !humidityInput || !altitudeInput || !clubRow) {
+                    console.error('Required elements not found');
+                    alert('Error: Required elements not found');
+                    return;
+                }
+                
+                // Set test values
+                console.log('Setting test values...');
+                tempInput.value = 70;
+                humidityInput.value = 50;
+                altitudeInput.value = 0;
+                
+                const distanceInput = clubRow.querySelector('.club-distance');
+                if (distanceInput) {
+                    distanceInput.value = 250;
+                    console.log('Set distance to:', distanceInput.value);
+                }
+                
+                // Trigger input events to ensure calculations update
+                const event = new Event('input', { bubbles: true });
+                tempInput.dispatchEvent(event);
+                humidityInput.dispatchEvent(event);
+                altitudeInput.dispatchEvent(event);
+                distanceInput.dispatchEvent(event);
+                
+                // Calculate
+                console.log('Calculating distances...');
+                calculateAllDistances();
+                
+                // Wait a moment for calculations to complete
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Get result
+                const adjustedElement = clubRow.querySelector('.adjusted-value');
+                if (adjustedElement) {
+                    const actualValue = parseFloat(adjustedElement.value || '0');
+                    console.log('Test values:', {
+                        temperature: tempInput.value,
+                        humidity: humidityInput.value,
+                        altitude: altitudeInput.value,
+                        distance: distanceInput.value
+                    });
+                    console.log('Test result:', {
+                        expected: 250,
+                        actual: actualValue,
+                        element: adjustedElement.value
+                    });
+                    
+                    // Show result
+                    const resultDiv = document.createElement('div');
+                    resultDiv.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;box-shadow:0 0 20px rgba(0,0,0,0.2);z-index:1000;';
+                    resultDiv.innerHTML = `
+                        <h2>Test Results</h2>
+                        <p>Test Conditions:</p>
+                        <ul>
+                            <li>Temperature: ${tempInput.value}°F</li>
+                            <li>Humidity: ${humidityInput.value}%</li>
+                            <li>Altitude: ${altitudeInput.value}ft</li>
+                            <li>Base Distance: ${distanceInput.value}yds</li>
+                        </ul>
+                        <p>Expected: 250 yards</p>
+                        <p>Actual: ${actualValue} yards</p>
+                        <p>Difference: ${Math.abs(actualValue - 250).toFixed(2)} yards</p>
+                        <button onclick="this.parentElement.remove()" style="padding:5px 10px;margin-top:10px;">Close</button>
+                    `;
+                    document.body.appendChild(resultDiv);
+                }
+            };
+            buttonGroup.appendChild(testButton);
+            console.log('Test button added successfully');
+        }
+        
+        // Add button when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', addTestButton);
+        } else {
+            addTestButton();
+        }
+    </script>
 </body>
 </html>
