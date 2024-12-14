@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Preview</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8fafc;
+        }
+        
+        h1 {
+            color: #1f2937;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+        
+        .icon-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .icon-card img {
+            display: block;
+            margin: 0 auto 1rem;
+        }
+        
+        .icon-card p {
+            margin: 0;
+            color: #6b7280;
+        }
+        
+        .actual-size {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Icon Preview</h1>
+    
+    <div class="grid">
+        <div class="icon-card">
+            <img src="icons/icon-72x72.png" width="200" height="200" alt="72x72 icon">
+            <p>72x72 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-72x72.png" width="72" height="72" alt="72x72 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+        
+        <div class="icon-card">
+            <img src="icons/icon-96x96.png" width="200" height="200" alt="96x96 icon">
+            <p>96x96 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-96x96.png" width="96" height="96" alt="96x96 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+        
+        <div class="icon-card">
+            <img src="icons/icon-128x128.png" width="200" height="200" alt="128x128 icon">
+            <p>128x128 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-128x128.png" width="128" height="128" alt="128x128 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+        
+        <div class="icon-card">
+            <img src="icons/icon-144x144.png" width="200" height="200" alt="144x144 icon">
+            <p>144x144 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-144x144.png" width="144" height="144" alt="144x144 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+        
+        <div class="icon-card">
+            <img src="icons/icon-152x152.png" width="200" height="200" alt="152x152 icon">
+            <p>152x152 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-152x152.png" width="152" height="152" alt="152x152 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+        
+        <div class="icon-card">
+            <img src="icons/icon-192x192.png" width="200" height="200" alt="192x192 icon">
+            <p>192x192 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-192x192.png" width="192" height="192" alt="192x192 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+        
+        <div class="icon-card">
+            <img src="icons/icon-384x384.png" width="200" height="200" alt="384x384 icon">
+            <p>384x384 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-384x384.png" width="384" height="384" alt="384x384 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+        
+        <div class="icon-card">
+            <img src="icons/icon-512x512.png" width="200" height="200" alt="512x512 icon">
+            <p>512x512 (Scaled)</p>
+            <div class="actual-size">
+                <img src="icons/icon-512x512.png" width="512" height="512" alt="512x512 icon actual size">
+                <p>Actual Size</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

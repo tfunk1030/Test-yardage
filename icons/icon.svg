@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="512" height="512" rx="128" fill="#3B82F6"/>
+    
+    <!-- Golf Ball -->
+    <circle cx="256" cy="256" r="120" fill="white"/>
+    <path d="M256 136C202.981 136 160 178.981 160 232C160 285.019 202.981 328 256 328C309.019 328 352 285.019 352 232C352 178.981 309.019 136 256 136ZM256 312C211.888 312 176 276.112 176 232C176 187.888 211.888 152 256 152C300.112 152 336 187.888 336 232C336 276.112 300.112 312 256 312Z" fill="#E5E7EB"/>
+    
+    <!-- Distance Lines -->
+    <path d="M256 96L256 32" stroke="white" stroke-width="24" stroke-linecap="round"/>
+    <path d="M256 480L256 416" stroke="white" stroke-width="24" stroke-linecap="round"/>
+    <path d="M416 256L480 256" stroke="white" stroke-width="24" stroke-linecap="round"/>
+    <path d="M32 256L96 256" stroke="white" stroke-width="24" stroke-linecap="round"/>
+    
+    <!-- Wind Arrows -->
+    <path d="M368 144L416 96" stroke="white" stroke-width="20" stroke-linecap="round"/>
+    <path d="M144 368L96 416" stroke="white" stroke-width="20" stroke-linecap="round"/>
+    <path d="M368 368L416 416" stroke="white" stroke-width="20" stroke-linecap="round"/>
+    <path d="M144 144L96 96" stroke="white" stroke-width="20" stroke-linecap="round"/>
+</svg>

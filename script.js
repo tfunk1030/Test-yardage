@@ -1,3 +1,43 @@
+// Register service worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch(err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+    });
+}
+
+// Initialize web worker for calculations
+const calculationWorker = new Worker('calculations-worker.js');
+let pendingCalculations = new Map();
+
+calculationWorker.onmessage = function(e) {
+    const { results, id, error } = e.data;
+    const callback = pendingCalculations.get(id);
+    
+    if (callback) {
+        callback(error, results);
+        pendingCalculations.delete(id);
+    }
+};
+
+function calculateWithWorker(conditions) {
+    return new Promise((resolve, reject) => {
+        const id = Date.now().toString();
+        
+        pendingCalculations.set(id, (error, results) => {
+            if (error) reject(new Error(error));
+            else resolve(results);
+        });
+        
+        calculationWorker.postMessage({ conditions, id });
+    });
+}
+
 // Cache DOM elements and constants
 const DOM = typeof document !== 'undefined' ? {
     altitude: document.getElementById('altitude'),
@@ -5,12 +45,17 @@ const DOM = typeof document !== 'undefined' ? {
     temperature: document.getElementById('temperature'),
     windSpeed: document.getElementById('wind-speed'),
     windDirection: document.getElementById('wind-direction'),
+    shotHeight: document.getElementById('shot-height'),
     clubs: document.getElementById('clubs'),
     environmentalEffect: document.getElementById('environmental-effect'),
-    shotChart: document.getElementById('shotChart')
+    shotChart: document.getElementById('shotChart'),
+    windDistanceEffect: document.getElementById('windDistanceEffect'),
+    windLateralEffect: document.getElementById('windLateralEffect'),
+    maxHeight: document.getElementById('maxHeight'),
+    landingAngle: document.getElementById('landingAngle'),
+    finalCarry: document.getElementById('finalCarry'),
+    finalTotal: document.getElementById('finalTotal')
 } : null;
-
-import { ENV_CONSTANTS } from './config.js';
 
 // Initialize shot visualization chart
 let shotChart;
@@ -55,88 +100,147 @@ function initializeChart() {
 
 // Environmental calculation functions
 export function calculateAirDensityRatio(conditions) {
+    // Standard conditions (sea level, 59°F)
     const standardTemp = 59;
-    const standardPressure = 29.92;
+    const standardPressure = 29.92; // inHg
+    const standardHumidity = 50; // %
     
-    const tempRankine = (conditions.temp || 70) + 459.67;
+    // Convert temperatures to Rankine (absolute scale)
+    const tempRankine = (conditions.temp || standardTemp) + 459.67;
     const standardTempRankine = standardTemp + 459.67;
     
-    // Pressure ratio with reduced effect
-    const pressureRatio = Math.pow((conditions.pressure || standardPressure) / standardPressure, 1.05);
+    // Pressure effect (reduced to ~1% per inHg)
+    const pressureRatio = Math.pow((conditions.pressure || standardPressure) / standardPressure, 0.45);
     
-    // Minimal humidity effect (0.9 yards over 0-100%)
-    const humidityFactor = 1 - ((conditions.humidity || 50) / 100 * 0.003);
+    // Temperature effect (scaled down)
+    const temperatureRatio = Math.pow(standardTempRankine / tempRankine, 0.5);
     
-    const airDensityRatio = (pressureRatio * standardTempRankine) / (tempRankine * humidityFactor);
+    // Humidity effect (about 0.8% from 0-100%)
+    const humidity = conditions.humidity || standardHumidity;
+    const humidityFactor = 1 - ((humidity - standardHumidity) / 100 * 0.008);
     
-    return 0.975 + (airDensityRatio * 0.05);
+    // Calculate relative air density with reduced scaling
+    const densityRatio = (pressureRatio * temperatureRatio * humidityFactor);
+    
+    // Scale the effect for more realistic magnitude
+    // Each 1% change in density affects distance by ~1%
+    return Math.pow(densityRatio, 1.0);
 }
 
-export function calculateWindEffect(windSpeed = 0, windDirection = 'N', referenceDirection = 'N') {
-    const windAngle = calculateWindAngle(windDirection, referenceDirection);
-    const speed = Number(windSpeed) || 0;
+/**
+ * Calculate shot height adjustment factors
+ * @param {string} heightChoice - 'low', 'medium', or 'high'
+ * @param {Object} clubData - Club-specific data
+ * @returns {Object} Height adjustment factors
+ */
+export function calculateShotHeightFactors(heightChoice, clubData) {
+    const {
+        launchAngle,
+        apexHeight,
+        spinRate
+    } = clubData;
+
+    // Base multipliers for different shot heights
+    const heightMultipliers = {
+        low: {
+            launchAngle: 0.75,    // Reduce launch angle for low shots
+            apexHeight: 0.65,     // Significantly lower apex
+            spinRate: 0.85,       // Less spin on low shots
+            windEffect: 0.4       // Much less affected by wind (adjusted from 0.7)
+        },
+        medium: {
+            launchAngle: 1.0,     // Standard launch
+            apexHeight: 1.0,      // Standard apex
+            spinRate: 1.0,        // Standard spin
+            windEffect: 1.0       // Standard wind effect
+        },
+        high: {
+            launchAngle: 1.15,    // Higher launch angle
+            apexHeight: 1.25,     // Higher apex
+            spinRate: 1.2,        // More spin for height
+            windEffect: 1.45      // More affected by wind (adjusted from 1.3)
+        }
+    };
+
+    const multipliers = heightMultipliers[heightChoice] || heightMultipliers.medium;
+
+    return {
+        adjustedLaunchAngle: launchAngle * multipliers.launchAngle,
+        adjustedApexHeight: apexHeight * multipliers.apexHeight,
+        adjustedSpinRate: spinRate * multipliers.spinRate,
+        windEffectMultiplier: multipliers.windEffect
+    };
+}
+
+// Helper function to calculate wind angle
+function calculateWindAngle(windDirection) {
+    const directions = {
+        'N': 0,
+        'NNE': 22.5,
+        'NE': 45,
+        'ENE': 67.5,
+        'E': 90,
+        'ESE': 112.5,
+        'SE': 135,
+        'SSE': 157.5,
+        'S': 180,
+        'SSW': 202.5,
+        'SW': 225,
+        'WSW': 247.5,
+        'W': 270,
+        'WNW': 292.5,
+        'NW': 315,
+        'NNW': 337.5
+    };
     
-    // Calibrated to match (±1% tolerance):
-    // 20mph headwind = -45 yards (243y)
-    // 10mph headwind = -20 yards (268y)
-    // 10mph tailwind = +18 yards (306y)
-    // 20mph tailwind = +31 yards (319y)
+    return directions[windDirection] || 0;
+}
+
+export function calculateWindEffect(windSpeed, windDirection, shotHeight = 'medium') {
+    // Convert wind speed to number and ensure it's positive
+    const speed = Math.abs(Number(windSpeed) || 0);
     
-    const headwindComponent = Math.cos(windAngle * Math.PI / 180) * speed;
-    let scaledHeadwind = 0;
+    // Height-specific adjustments
+    const heightMultipliers = {
+        'low': 0.65,
+        'medium': 1.0,
+        'high': 1.35
+    };
     
-    if (headwindComponent > 0) { // Headwind
-        // Base coefficients for headwind
-        const a = 0.00685;
-        const b = 1.12;
-        const c = 0.018;
-        
-        // Calculate base effect with power law
-        let effect = Math.pow(headwindComponent, b) * a;
-        
-        // Add progressive scaling for higher speeds
-        if (headwindComponent > 10) {
-            effect += Math.pow((headwindComponent - 10) / 10, 1.15) * c;
-        }
-        
-        // Fine-tune specific points
-        if (Math.abs(headwindComponent - 10) < 0.1) {
-            effect *= 1.022;  // Increased adjustment for 10mph
-        } else if (Math.abs(headwindComponent - 20) < 0.1) {
-            effect *= 1.028;  // Keep 20mph adjustment
-        }
-        
-        scaledHeadwind = -effect;
-    } else { // Tailwind
-        const absComponent = Math.abs(headwindComponent);
-        
-        // Base coefficients for tailwind
-        const a = 0.00945;  // Slightly reduced
-        const b = 1.06;
-        const c = 0.0115;   // Reduced for less aggressive scaling
-        
-        // Calculate base effect
-        let effect = Math.pow(absComponent, b) * a;
-        
-        // Add diminishing returns for higher speeds
-        if (absComponent > 10) {
-            effect += Math.pow((absComponent - 10) / 10, 0.82) * c;  // More diminishing
-        }
-        
-        // Fine-tune specific points
-        if (Math.abs(absComponent - 10) < 0.1) {
-            effect *= 1.012;  // Keep 10mph adjustment
-        } else if (Math.abs(absComponent - 20) < 0.1) {
-            effect *= 1.008;  // Reduced adjustment for 20mph
-        }
-        
-        scaledHeadwind = effect;
+    let heightMultiplier = heightMultipliers[shotHeight] || 1.0;
+    
+    // Progressive wind reduction for strong winds on low shots
+    if (shotHeight === 'low' && speed > 10) {
+        const extraReduction = 1 - ((speed - 10) * 0.015);
+        heightMultiplier *= extraReduction;
     }
     
-    const crosswindComponent = Math.sin(windAngle * Math.PI / 180) * speed;
-    const scaledCrosswind = Math.sign(crosswindComponent) * 
-                           Math.pow(Math.abs(crosswindComponent), 0.95) * 
-                           0.006;
+    // Get wind angle and calculate components
+    const angle = calculateWindAngle(windDirection);
+    const headwindComponent = Math.cos(angle * Math.PI / 180) * speed;
+    const crosswindComponent = Math.sin(angle * Math.PI / 180) * speed;
+    
+    // Calculate scaled effects with optimized coefficients
+    const baseWindEffect = 0.0078; // Increased from 0.0052
+    const crosswindFactor = 0.0052; // Increased from 0.0039
+    
+    // Add non-linear scaling for stronger winds
+    const headwindPower = Math.pow(Math.abs(headwindComponent), 0.92);
+    const crosswindPower = Math.pow(Math.abs(crosswindComponent), 0.92);
+    
+    // Progressive scaling for stronger winds
+    let headwindMultiplier = 1.0;
+    let crosswindMultiplier = 1.0;
+    
+    if (Math.abs(headwindComponent) > 10) {
+        headwindMultiplier = 1.0 + (Math.abs(headwindComponent) - 10) * 0.02;
+    }
+    if (Math.abs(crosswindComponent) > 10) {
+        crosswindMultiplier = 1.0 + (Math.abs(crosswindComponent) - 10) * 0.015;
+    }
+    
+    const scaledHeadwind = -Math.sign(headwindComponent) * headwindPower * baseWindEffect * heightMultiplier * headwindMultiplier;
+    const scaledCrosswind = Math.sign(crosswindComponent) * crosswindPower * crosswindFactor * heightMultiplier * crosswindMultiplier;
     
     return {
         distanceEffect: scaledHeadwind,
@@ -154,28 +258,36 @@ export function calculateAltitudeEffect(altitude = 0) {
     // - Reno (4,500ft): 1.095 (+9.5%)
     // - Mexico City (7,350ft): 1.156 (+15.6%)
     
-    // Base altitude effect using a refined logarithmic model
-    const baseEffect = Math.log(alt / 1000 + 1) * 0.1075;
+    // Base altitude effect using a combination of logarithmic and linear scaling
+    const baseEffect = Math.log(alt / 1000 + 1) * 0.045;
     
-    // Progressive scaling with altitude bands
+    // Progressive scaling with altitude bands (refined progression)
     let progressiveEffect = 0;
-    if (alt > 2000) progressiveEffect += (alt - 2000) / 28000;
-    if (alt > 4000) progressiveEffect += (alt - 4000) / 24000;
-    if (alt > 6000) progressiveEffect += (alt - 6000) / 22000;
+    if (alt > 2000) progressiveEffect += (alt - 2000) / 120000;
+    if (alt > 4000) progressiveEffect += (alt - 4000) / 110000;
+    if (alt > 6000) progressiveEffect += (alt - 6000) / 100000;
     
-    // Spin rate adjustment at altitude (reduces backspin by ~3% per 1000m)
-    const spinEffect = Math.min(alt / 50000, 0.15);
+    // Altitude-based air density effect (refined formula)
+    const densityEffect = Math.exp(-alt / 30000);
     
-    // Air density correction factor (more precise than previous)
-    const densityEffect = 1 - (alt * 0.0000225);
+    // Spin rate adjustment at altitude (reduces backspin by ~2.5% per 1000m)
+    const spinEffect = Math.min(alt / 120000, 0.065);
+    
+    // Empirical correction factor based on real course data
+    const empiricalFactor = 1.15;
+    
+    // Calculate total effect with empirical correction
+    const rawEffect = (baseEffect + progressiveEffect) * empiricalFactor;
+    const total = 1 + (rawEffect * densityEffect);
     
     return {
-        total: 1 + baseEffect + progressiveEffect,
+        total,
         components: {
             base: baseEffect,
             progressive: progressiveEffect,
             spin: spinEffect,
-            density: densityEffect
+            density: densityEffect,
+            empirical: empiricalFactor
         }
     };
 }
@@ -191,7 +303,7 @@ export function calculateBallTempEffect(temp = 70) {
     return tempEffect;
 }
 
-export function calculateAdjustmentFactor(conditions = {}) {
+export function calculateAdjustmentFactor(conditions = {}, clubData) {
     const defaultConditions = {
         temp: 70,
         humidity: 50,
@@ -205,7 +317,7 @@ export function calculateAdjustmentFactor(conditions = {}) {
     
     const airDensityRatio = calculateAirDensityRatio(mergedConditions);
     const altitudeEffects = calculateAltitudeEffect(mergedConditions.altitude);
-    const windEffect = calculateWindEffect(mergedConditions.windSpeed, mergedConditions.windDir);
+    const windEffect = calculateWindEffect(mergedConditions.windSpeed, mergedConditions.windDir, mergedConditions.shotHeight);
     const ballTempEffect = calculateBallTempEffect(mergedConditions.temp);
     const pressureTrendEffect = mergedConditions.pressure > 30.1 ? 1.002 : 
                                mergedConditions.pressure < 29.8 ? 0.998 : 1;
@@ -249,80 +361,37 @@ export function calculateAdjustmentFactor(conditions = {}) {
     };
 }
 
-// Helper function to calculate wind angle
-function calculateWindAngle(windDir = 'N', targetDir = 'N') {
-    // Convert wind direction to degrees
-    let windDegrees;
-    switch((windDir || 'N').toLowerCase()) {
-        case 'n': windDegrees = 0; break;
-        case 'ne': windDegrees = 45; break;
-        case 'e': windDegrees = 90; break;
-        case 'se': windDegrees = 135; break;
-        case 's': windDegrees = 180; break;
-        case 'sw': windDegrees = 225; break;
-        case 'w': windDegrees = 270; break;
-        case 'nw': windDegrees = 315; break;
-        case 'head': windDegrees = 0; break;
-        case 'tail': windDegrees = 180; break;
-        case 'left': windDegrees = 270; break;
-        case 'right': windDegrees = 90; break;
-        default: windDegrees = parseInt(windDir) || 0;
-    }
-
-    // Convert target direction to degrees
-    let targetDegrees;
-    switch((targetDir || 'N').toLowerCase()) {
-        case 'n': targetDegrees = 0; break;
-        case 'ne': targetDegrees = 45; break;
-        case 'e': targetDegrees = 90; break;
-        case 'se': targetDegrees = 135; break;
-        case 's': targetDegrees = 180; break;
-        case 'sw': targetDegrees = 225; break;
-        case 'w': targetDegrees = 270; break;
-        case 'nw': targetDegrees = 315; break;
-        default: targetDegrees = parseInt(targetDir) || 0;
-    }
-
-    // Calculate relative angle
-    return (windDegrees - targetDegrees + 360) % 360;
-}
-
 // Update the UI when conditions change
-function updateDistances() {
-    const temp = parseFloat(DOM.temperature.value) || ENV_CONSTANTS.STANDARD_CONDITIONS.TEMPERATURE;
-    const humidity = parseFloat(DOM.humidity.value) || ENV_CONSTANTS.STANDARD_CONDITIONS.HUMIDITY;
-    const altitude = parseFloat(DOM.altitude.value) || ENV_CONSTANTS.STANDARD_CONDITIONS.ALTITUDE;
-    const pressure = parseFloat(DOM.pressure.value) || ENV_CONSTANTS.STANDARD_CONDITIONS.PRESSURE;
-    const windSpeed = parseFloat(DOM.windSpeed.value) || ENV_CONSTANTS.STANDARD_CONDITIONS.WIND_SPEED;
-    const windDirection = DOM.windDirection.value;
-
-    const adjustment = calculateAdjustmentFactor({
-        temp,
-        humidity,
-        pressure,
-        altitude,
-        windSpeed,
-        windDir: windDirection
-    });
-
-    // Update each club's distance
-    document.querySelectorAll('.club-row').forEach(row => {
-        const distanceInput = row.querySelector('.club-distance');
-        const adjustedInput = row.querySelector('.adjusted-value');
+async function updateCalculations() {
+    if (!validateInputs()) return;
+    
+    showLoadingState();
+    
+    try {
+        const conditions = {
+            temperature: parseFloat(DOM.temperature.value),
+            humidity: parseFloat(DOM.humidity.value),
+            altitude: parseFloat(DOM.altitude.value),
+            windSpeed: parseFloat(DOM.windSpeed.value),
+            windDirection: DOM.windDirection.value,
+            shotHeight: DOM.shotHeight.value
+        };
         
-        if (distanceInput && adjustedInput) {
-            const standardDistance = parseFloat(distanceInput.value) || 0;
-            const adjustedDistance = Math.round(standardDistance * adjustment.factor);
-            adjustedInput.value = adjustedDistance;
-        }
-    });
-
-    // Update shot visualization for the last calculated club
-    const lastDistance = parseFloat(document.querySelector('.club-distance:last-child')?.value) || 150;
-    updateShotVisualization(lastDistance, adjustment.factor);
-
-    // Update environmental effect display
-    updateEnvironmentalEffect(adjustment.factor, adjustment.components, altitude);
+        // Store current conditions in local storage
+        localStorage.setItem('lastConditions', JSON.stringify(conditions));
+        
+        // Perform calculations in web worker
+        const results = await calculateWithWorker(conditions);
+        
+        // Update UI with results
+        updateUI(results);
+        addToHistory(conditions, results);
+        
+        showSuccessState();
+    } catch (error) {
+        console.error('Calculation error:', error);
+        showErrorState(error.message);
+    }
 }
 
 // Update shot trajectory visualization
@@ -348,7 +417,7 @@ function updateShotVisualization(distance, adjustment) {
 }
 
 // Update environmental effect display with comprehensive information
-function updateEnvironmentalEffect(adjustment, components, altitude) {
+function updateEnvironmentalEffect(adjustment, conditions, clubData) {
     if (!DOM) return;
     const percentChange = ((adjustment - 1) * 100).toFixed(1);
     const direction = adjustment > 1 ? 'increase' : 'decrease';
@@ -361,11 +430,11 @@ function updateEnvironmentalEffect(adjustment, components, altitude) {
         pressureTrend: 0.02
     };
     const componentEffects = {
-        airDensity: ((components.airDensity) * 100).toFixed(1),
-        altitude: ((components.altitude.total) * 100).toFixed(1),
-        wind: ((components.wind.distanceEffect) * 100).toFixed(1),
-        ballTemp: ((components.ballTemp) * 100).toFixed(1),
-        pressureTrend: ((components.pressureTrend) * 100).toFixed(1)
+        airDensity: ((conditions.airDensity) * 100).toFixed(1),
+        altitude: ((conditions.altitude.total) * 100).toFixed(1),
+        wind: ((conditions.wind.distanceEffect) * 100).toFixed(1),
+        ballTemp: ((conditions.ballTemp) * 100).toFixed(1),
+        pressureTrend: ((conditions.pressureTrend) * 100).toFixed(1)
     };
     
     let effectText = `
@@ -376,7 +445,7 @@ function updateEnvironmentalEffect(adjustment, components, altitude) {
                 <ul class="space-y-1">
                     <li>🌡️ Temperature: ${Math.round(DOM.temperature.value)}°F</li>
                     <li>💧 Humidity: ${Math.round(DOM.humidity.value)}%</li>
-                    <li>🏔️ Altitude: ${Math.round(altitude)}ft</li>
+                    <li>🏔️ Altitude: ${Math.round(conditions.altitude)}ft</li>
                     <li>🌬️ Wind: ${Math.round(DOM.windSpeed.value)}mph ${DOM.windDirection.value}</li>
                     <li>📊 Pressure: ${DOM.pressure.value.toFixed(2)} inHg</li>
                 </ul>
@@ -400,99 +469,76 @@ function updateEnvironmentalEffect(adjustment, components, altitude) {
     DOM.environmentalEffect.innerHTML = effectText;
 }
 
+// Update UI when calculations are performed
+function updateUI(results) {
+    // Update wind effect display
+    document.getElementById('windDistanceEffect').textContent = 
+        `${results.windEffect.distanceEffect > 0 ? '+' : ''}${(results.windEffect.distanceEffect * 100).toFixed(1)}% (${Math.round(results.baseYardage * results.windEffect.distanceEffect)} yards)`;
+    
+    document.getElementById('windLateralEffect').textContent = 
+        `${results.windEffect.lateralEffect > 0 ? 'Right ' : 'Left '}${Math.abs(Math.round(results.baseYardage * results.windEffect.lateralEffect))} yards`;
+    
+    // Update shot shape information
+    document.getElementById('maxHeight').textContent = 
+        `${Math.round(results.trajectory.maxHeight)} feet`;
+    document.getElementById('landingAngle').textContent = 
+        `${Math.round(results.trajectory.landingAngle)}°`;
+    
+    // Update final distances
+    const carryDistance = Math.round(results.baseYardage * (1 + results.windEffect.distanceEffect));
+    const totalDistance = Math.round(carryDistance * (1 + (results.rollout || 0)));
+    
+    document.getElementById('finalCarry').textContent = `${carryDistance} yards`;
+    document.getElementById('finalTotal').textContent = `${totalDistance} yards`;
+}
+
+// Event listener for input changes
+document.querySelectorAll('.input-field').forEach(input => {
+    input.addEventListener('change', () => {
+        const conditions = getConditions();
+        const results = calculateBallFlightAdjustments(conditions);
+        updateUI(results);
+    });
+});
+
 // Get comprehensive weather data from API
-async function getWeatherData(lat, lon) {
-    try {
-        // Get current weather data
-        const currentResponse = await fetch(
-            `${config.API_BASE_URL}/${config.ENDPOINTS.CURRENT}?key=${config.WEATHERAPI_KEY}&q=${lat},${lon}&aqi=yes`
-        );
-        if (!currentResponse.ok) throw new Error(`HTTP error! status: ${currentResponse.status}`);
-        const currentData = await currentResponse.json();
-
-        // Get forecast data for additional context
-        const forecastResponse = await fetch(
-            `${config.API_BASE_URL}/${config.ENDPOINTS.FORECAST}?key=${config.WEATHERAPI_KEY}&q=${lat},${lon}&days=1&hour=24`
-        );
-        if (!forecastResponse.ok) throw new Error(`HTTP error! status: ${forecastResponse.status}`);
-        const forecastData = await forecastResponse.json();
-
-        // Get marine weather data if near coast (within 100km)
-        let marineData = null;
-        try {
-            const marineResponse = await fetch(
-                `${config.API_BASE_URL}/${config.ENDPOINTS.MARINE}?key=${config.WEATHERAPI_KEY}&q=${lat},${lon}`
-            );
-            if (marineResponse.ok) {
-                marineData = await marineResponse.json();
-            }
-        } catch (e) {
-            console.log('Location not near coast, skipping marine data');
-        }
-
-        // Combine all weather data
-        return {
-            current: {
-                temp: currentData.current.temp_f,
-                humidity: currentData.current.humidity,
-                windSpeed: currentData.current.wind_mph,
-                windDeg: currentData.current.wind_degree,
-                windDir: currentData.current.wind_dir,
-                pressure: currentData.current.pressure_in,
-                precip: currentData.current.precip_in,
-                clouds: currentData.current.cloud,
-                feelsLike: currentData.current.feelslike_f,
-                visibility: currentData.current.vis_miles,
-                uv: currentData.current.uv,
-                gust: currentData.current.gust_mph,
-                windChill: currentData.current.windchill_f,
-                heatIndex: currentData.current.heatindex_f,
-                dewPoint: currentData.current.dewpoint_f,
-                lastUpdated: currentData.current.last_updated
-            },
-            forecast: {
-                maxTemp: forecastData.forecast.forecastday[0].day.maxtemp_f,
-                minTemp: forecastData.forecast.forecastday[0].day.mintemp_f,
-                avgTemp: forecastData.forecast.forecastday[0].day.avgtemp_f,
-                maxWind: forecastData.forecast.forecastday[0].day.maxwind_mph,
-                totalPrecip: forecastData.forecast.forecastday[0].day.totalprecip_in,
-                avgVisibility: forecastData.forecast.forecastday[0].day.avgvis_miles,
-                avgHumidity: forecastData.forecast.forecastday[0].day.avghumidity,
-                rainChance: forecastData.forecast.forecastday[0].day.daily_chance_of_rain,
-                condition: forecastData.forecast.forecastday[0].day.condition.text
-            },
-            marine: marineData ? {
-                swellHeight: marineData.forecast.forecastday[0].day.swell_ht_ft,
-                swellDir: marineData.forecast.forecastday[0].day.swell_dir,
-                swellPeriod: marineData.forecast.forecastday[0].day.swell_period_secs
-            } : null,
-            astro: {
-                sunrise: forecastData.forecast.forecastday[0].astro.sunrise,
-                sunset: forecastData.forecast.forecastday[0].astro.sunset,
-                isSunUp: forecastData.forecast.forecastday[0].astro.is_sun_up
-            }
-        };
-    } catch (error) {
-        throw new Error(`Weather API error: ${error.message}`);
+export async function getWeatherData(lat, lon, apiKey) {
+    if (!apiKey) {
+        throw new Error('API key is required');
     }
+
+    const API_BASE_URL = 'https://api.tomorrow.io/v4/weather';
+    const url = `${API_BASE_URL}/realtime?location=${lat},${lon}&units=imperial&apikey=${apiKey}`;
+
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data || !data.data || !data.data.values) {
+        throw new Error('Invalid API response format');
+    }
+
+    return data.data.values;
 }
 
 // Fetch weather data from API
 async function fetchWeatherData() {
     try {
         const position = await getCurrentPosition();
-        const weatherData = await getWeatherData(position.coords.latitude, position.coords.longitude);
+        const weatherData = await getWeatherData(position.coords.latitude, position.coords.longitude, process.env.WEATHERAPI_KEY);
         const altitude = await getAltitude(position.coords.latitude, position.coords.longitude);
         
         // Update input fields with current weather
         if (DOM) {
-            DOM.temperature.value = Math.round(weatherData.current.temp);
-            DOM.humidity.value = Math.round(weatherData.current.humidity);
+            DOM.temperature.value = Math.round(weatherData.temp);
+            DOM.humidity.value = Math.round(weatherData.humidity);
             DOM.altitude.value = Math.round(altitude);
-            DOM.windSpeed.value = Math.round(weatherData.current.windSpeed);
+            DOM.windSpeed.value = Math.round(weatherData.windSpeed);
             
             // Set wind direction based on degree
-            const degree = weatherData.current.windDeg;
+            const degree = weatherData.windDirection;
             if (degree > 315 || degree <= 45) DOM.windDirection.value = 'head';
             else if (degree > 45 && degree <= 135) DOM.windDirection.value = 'right';
             else if (degree > 135 && degree <= 225) DOM.windDirection.value = 'tail';
@@ -500,7 +546,7 @@ async function fetchWeatherData() {
         }
         
         // Calculate new distances
-        updateDistances();
+        updateCalculations();
     } catch (error) {
         console.error('Error fetching weather data:', error);
         if (DOM) showError('Could not fetch weather data. Please check your location settings and try again.');
@@ -574,42 +620,675 @@ function showError(message) {
     setTimeout(() => errorDiv.remove(), 3000);
 }
 
-// Initialize the application
-if (typeof document !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (!DOM) return;
-        initializeClubRows();
-        initializeChart();
-        
-        // Event listeners
-        document.getElementById('get-weather').addEventListener('click', fetchWeatherData);
-        document.getElementById('calculate').addEventListener('click', updateDistances);
-        document.getElementById('add-club').addEventListener('click', () => {
-            const row = document.createElement('div');
-            row.className = 'club-row';
-            row.innerHTML = `
-                <input type="text" class="club-name input-field" placeholder="Club Name">
-                <input type="number" class="club-distance input-field" placeholder="Distance">
-                <input type="text" class="adjusted-value input-field bg-gray-50" readonly>
-            `;
-            DOM.clubs.appendChild(row);
+// Debounce function to prevent too many updates
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Save conditions as preset
+function saveConditionsPreset() {
+    const conditions = getConditions();
+    const presets = JSON.parse(localStorage.getItem('conditionPresets') || '[]');
+    const timestamp = new Date().toLocaleString();
+    
+    presets.push({
+        ...conditions,
+        name: `Preset ${presets.length + 1}`,
+        timestamp
+    });
+    
+    localStorage.setItem('conditionPresets', JSON.stringify(presets));
+    showSuccessMessage('Preset saved successfully');
+}
+
+// Load last used conditions
+function loadLastConditions() {
+    const lastConditions = localStorage.getItem('lastConditions');
+    if (lastConditions) {
+        const conditions = JSON.parse(lastConditions);
+        Object.entries(conditions).forEach(([key, value]) => {
+            const element = document.getElementById(key);
+            if (element) {
+                element.value = value;
+            }
         });
+        updateCalculations();
+    }
+}
+
+// Save current conditions
+function saveCurrentConditions() {
+    const conditions = getConditions();
+    localStorage.setItem('lastConditions', JSON.stringify(conditions));
+}
+
+// Show success message
+function showSuccessMessage(message) {
+    const container = document.createElement('div');
+    container.className = 'success-message fixed top-4 right-4 bg-success-100 text-success-700 px-4 py-2 rounded-lg shadow-lg animate-fade-in';
+    container.textContent = message;
+    document.body.appendChild(container);
+    
+    setTimeout(() => {
+        container.remove();
+    }, 3000);
+}
+
+// Show error message
+function showErrorMessage(message) {
+    const container = document.createElement('div');
+    container.className = 'error-message fixed top-4 right-4 bg-danger-100 text-danger-700 px-4 py-2 rounded-lg shadow-lg animate-fade-in';
+    container.textContent = message;
+    document.body.appendChild(container);
+    
+    setTimeout(() => {
+        container.remove();
+    }, 3000);
+}
+
+// Validate input values
+function validateInput(input) {
+    const value = parseFloat(input.value);
+    const id = input.id;
+    
+    let isValid = true;
+    let errorMessage = '';
+    
+    switch(id) {
+        case 'temperature':
+            if (value < -50 || value > 120) {
+                isValid = false;
+                errorMessage = 'Temperature should be between -50°F and 120°F';
+            }
+            break;
+        case 'humidity':
+            if (value < 0 || value > 100) {
+                isValid = false;
+                errorMessage = 'Humidity should be between 0% and 100%';
+            }
+            break;
+        case 'altitude':
+            if (value < -1000 || value > 15000) {
+                isValid = false;
+                errorMessage = 'Altitude should be between -1000ft and 15000ft';
+            }
+            break;
+        case 'wind-speed':
+            if (value < 0 || value > 50) {
+                isValid = false;
+                errorMessage = 'Wind speed should be between 0mph and 50mph';
+            }
+            break;
+    }
+    
+    if (!isValid) {
+        input.classList.add('error-state');
+        const errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        errorElement.textContent = errorMessage;
+        input.parentNode.appendChild(errorElement);
+    } else {
+        input.classList.remove('error-state');
+        const existingError = input.parentNode.querySelector('.error-message');
+        if (existingError) {
+            existingError.remove();
+        }
+    }
+    
+    return isValid;
+}
+
+// Update all calculations with loading state
+async function updateAllCalculations() {
+    // Show loading state
+    document.querySelectorAll('.card').forEach(card => {
+        card.classList.add('loading');
+    });
+    
+    try {
+        const conditions = getConditions();
+        const results = calculateBallFlightAdjustments(conditions);
         
-        // Add input validation
-        const inputs = document.querySelectorAll('input[type="number"]');
-        inputs.forEach(input => {
-            input.addEventListener('input', validateNumberInput);
+        // Update visualizations
+        updateWindVisualization(conditions.windDirection, conditions.windSpeed);
+        drawTrajectory(results);
+        updateRecommendations(results);
+        
+        // Save current conditions
+        saveCurrentConditions();
+        
+    } catch (error) {
+        showErrorMessage('Error updating calculations');
+        console.error(error);
+    } finally {
+        // Remove loading state
+        document.querySelectorAll('.card').forEach(card => {
+            card.classList.remove('loading');
         });
+    }
+}
+
+// Keyboard shortcuts
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        // Only handle keyboard shortcuts if not in an input field
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
         
-        // Calculate initial distances
-        updateDistances();
+        // Ctrl/Cmd + S to save preset
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveConditionsPreset();
+        }
+        
+        // Ctrl/Cmd + W to get weather
+        if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+            e.preventDefault();
+            document.getElementById('get-weather').click();
+        }
+        
+        // Ctrl/Cmd + / to show keyboard shortcuts
+        if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+            e.preventDefault();
+            showKeyboardShortcuts();
+        }
     });
 }
 
-// Validate number input
-function validateNumberInput(e) {
-    const value = e.target.value;
-    if (value && isNaN(value)) {
-        e.target.value = value.replace(/[^\d.-]/g, '');
+// Show keyboard shortcuts modal
+function showKeyboardShortcuts() {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 class="text-lg font-semibold mb-4">Keyboard Shortcuts</h3>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Save Preset</span>
+                    <kbd class="px-2 py-1 bg-gray-100 rounded text-sm">Ctrl/⌘ + S</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Get Weather</span>
+                    <kbd class="px-2 py-1 bg-gray-100 rounded text-sm">Ctrl/⌘ + W</kbd>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">Show Shortcuts</span>
+                    <kbd class="px-2 py-1 bg-gray-100 rounded text-sm">Ctrl/⌘ + /</kbd>
+                </div>
+            </div>
+            <button class="mt-4 w-full btn-secondary" onclick="this.parentElement.parentElement.remove()">
+                Close
+            </button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Close on click outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+// Add ARIA labels and roles for accessibility
+function setupAccessibility() {
+    // Add ARIA labels to inputs
+    document.querySelectorAll('.input-field').forEach(input => {
+        const label = input.previousElementSibling;
+        if (label && label.tagName === 'LABEL') {
+            input.setAttribute('aria-label', label.textContent.trim());
+        }
+    });
+    
+    // Add roles to sections
+    document.querySelectorAll('.card').forEach(card => {
+        const heading = card.querySelector('h2');
+        if (heading) {
+            card.setAttribute('role', 'region');
+            card.setAttribute('aria-labelledby', heading.id || `heading-${Math.random().toString(36).substr(2, 9)}`);
+        }
+    });
+    
+    // Add live regions for updates
+    const liveRegion = document.createElement('div');
+    liveRegion.setAttribute('aria-live', 'polite');
+    liveRegion.className = 'sr-only';
+    document.body.appendChild(liveRegion);
+    
+    // Update live region when calculations change
+    window.updateLiveRegion = (message) => {
+        liveRegion.textContent = message;
+    };
+}
+
+// Add touch gestures for mobile
+function setupTouchGestures() {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    });
+    
+    document.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Swipe left/right to switch between cards on mobile
+        if (Math.abs(deltaX) > 100 && Math.abs(deltaY) < 50) {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.style.transition = 'transform 0.3s ease-out';
+                card.style.transform = `translateX(${deltaX > 0 ? '100%' : '-100%'})`;
+                setTimeout(() => {
+                    card.style.transition = '';
+                    card.style.transform = '';
+                }, 300);
+            });
+        }
+    });
+}
+
+// Initialize all enhancements
+document.addEventListener('DOMContentLoaded', () => {
+    setupKeyboardShortcuts();
+    setupAccessibility();
+    setupTouchGestures();
+    
+    // Show keyboard shortcuts hint
+    const shortcutHint = document.createElement('div');
+    shortcutHint.className = 'fixed bottom-4 right-4 text-sm text-gray-600 animate-fade-in';
+    shortcutHint.textContent = 'Press Ctrl/⌘ + / for keyboard shortcuts';
+    document.body.appendChild(shortcutHint);
+    
+    setTimeout(() => {
+        shortcutHint.remove();
+    }, 5000);
+});
+
+// Progressive loading and performance optimizations
+function setupProgressiveLoading() {
+    // Lazy load non-critical resources
+    const deferredStyles = document.createElement('link');
+    deferredStyles.rel = 'stylesheet';
+    deferredStyles.href = 'https://rsms.me/inter/inter.css';
+    deferredStyles.media = 'print';
+    document.head.appendChild(deferredStyles);
+    
+    requestIdleCallback(() => {
+        deferredStyles.media = 'all';
+    });
+    
+    // Cache DOM elements
+    const elements = {};
+    ['temperature', 'humidity', 'altitude', 'wind-speed', 'wind-direction', 'shot-height'].forEach(id => {
+        elements[id] = document.getElementById(id);
+    });
+    window.cachedElements = elements;
+    
+    // Batch DOM updates
+    window.pendingUpdates = new Set();
+    window.updateQueue = new Map();
+    
+    requestAnimationFrame(function processBatchUpdates() {
+        if (window.pendingUpdates.size > 0) {
+            window.pendingUpdates.forEach(update => update());
+            window.pendingUpdates.clear();
+        }
+        requestAnimationFrame(processBatchUpdates);
+    });
+}
+
+// Optimize calculations with web workers
+function setupWebWorker() {
+    if (window.Worker) {
+        const worker = new Worker('calculations-worker.js');
+        
+        worker.onmessage = function(e) {
+            const { results, id } = e.data;
+            const callback = window.updateQueue.get(id);
+            if (callback) {
+                callback(results);
+                window.updateQueue.delete(id);
+            }
+        };
+        
+        window.calculationWorker = worker;
     }
 }
+
+// Add offline support
+function setupOfflineSupport() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch(err => {
+                console.error('ServiceWorker registration failed:', err);
+            });
+    }
+    
+    // Save last successful calculation
+    window.addEventListener('beforeunload', () => {
+        const lastCalculation = {
+            conditions: getConditions(),
+            results: window.lastResults,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('lastCalculation', JSON.stringify(lastCalculation));
+    });
+    
+    // Load last calculation when offline
+    window.addEventListener('online', () => {
+        document.body.classList.remove('offline-mode');
+        updateAllCalculations();
+    });
+    
+    window.addEventListener('offline', () => {
+        document.body.classList.add('offline-mode');
+        const lastCalculation = localStorage.getItem('lastCalculation');
+        if (lastCalculation) {
+            const { conditions, results } = JSON.parse(lastCalculation);
+            Object.entries(conditions).forEach(([key, value]) => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = value;
+                }
+            });
+            updateVisualizations(conditions, results);
+        }
+    });
+}
+
+// Add undo/redo functionality
+const historyStack = {
+    past: [],
+    future: [],
+    current: null
+};
+
+function setupUndoRedo() {
+    function saveState() {
+        const currentState = {
+            conditions: getConditions(),
+            timestamp: Date.now()
+        };
+        
+        if (historyStack.current) {
+            historyStack.past.push(historyStack.current);
+        }
+        historyStack.current = currentState;
+        historyStack.future = [];
+        
+        // Limit history size
+        if (historyStack.past.length > 50) {
+            historyStack.past.shift();
+        }
+    }
+    
+    function undo() {
+        if (historyStack.past.length === 0) return;
+        
+        const previousState = historyStack.past.pop();
+        if (historyStack.current) {
+            historyStack.future.push(historyStack.current);
+        }
+        historyStack.current = previousState;
+        
+        applyState(previousState);
+    }
+    
+    function redo() {
+        if (historyStack.future.length === 0) return;
+        
+        const nextState = historyStack.future.pop();
+        if (historyStack.current) {
+            historyStack.past.push(historyStack.current);
+        }
+        historyStack.current = nextState;
+        
+        applyState(nextState);
+    }
+    
+    function applyState(state) {
+        Object.entries(state.conditions).forEach(([key, value]) => {
+            const element = document.getElementById(key);
+            if (element) {
+                element.value = value;
+            }
+        });
+        updateAllCalculations();
+    }
+    
+    // Add keyboard shortcuts for undo/redo
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+        
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                redo();
+            } else {
+                undo();
+            }
+        }
+    });
+    
+    // Save state after each change
+    const debouncedSaveState = debounce(saveState, 500);
+    document.querySelectorAll('.input-field').forEach(input => {
+        input.addEventListener('change', debouncedSaveState);
+    });
+}
+
+// Initialize all progressive enhancements
+document.addEventListener('DOMContentLoaded', () => {
+    setupProgressiveLoading();
+    setupWebWorker();
+    setupOfflineSupport();
+    setupUndoRedo();
+});
+
+// Weather API configuration
+const WEATHER_API_KEY = 'YOUR_API_KEY'; // You'll need to get an API key from OpenWeatherMap
+const ALTITUDE_API_KEY = 'YOUR_API_KEY'; // You'll need to get an API key from OpenElevation
+
+// DOM Elements
+document.addEventListener('DOMContentLoaded', function() {
+    const getWeatherBtn = document.getElementById('get-weather');
+    if (getWeatherBtn) {
+        getWeatherBtn.addEventListener('click', getCurrentWeather);
+    }
+
+    // Update active tab
+    const tabs = document.querySelectorAll('.nav-tab');
+    tabs.forEach(tab => {
+        if (tab.getAttribute('href') === window.location.pathname) {
+            tab.classList.add('active');
+        }
+    });
+});
+
+// Get current weather data
+async function getCurrentWeather() {
+    try {
+        // Show loading state
+        const weatherBtn = document.getElementById('get-weather');
+        weatherBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading...';
+        weatherBtn.disabled = true;
+
+        // Get user's location
+        const position = await getCurrentPosition();
+        const { latitude, longitude } = position.coords;
+
+        // Get weather data
+        const weatherData = await fetchWeatherData(latitude, longitude);
+        
+        // Get altitude data
+        const altitude = await fetchAltitude(latitude, longitude);
+
+        // Update UI
+        updateWeatherUI(weatherData, altitude);
+
+        // Reset button
+        weatherBtn.innerHTML = '<i class="fas fa-location-arrow mr-2"></i>Get Current Weather';
+        weatherBtn.disabled = false;
+
+    } catch (error) {
+        console.error('Error getting weather:', error);
+        alert('Unable to get weather data. Please try again.');
+        
+        // Reset button
+        const weatherBtn = document.getElementById('get-weather');
+        if (weatherBtn) {
+            weatherBtn.innerHTML = '<i class="fas fa-location-arrow mr-2"></i>Get Current Weather';
+            weatherBtn.disabled = false;
+        }
+    }
+}
+
+// Get user's current position
+function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error('Geolocation is not supported by your browser'));
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+        });
+    });
+}
+
+// Fetch weather data from OpenWeatherMap API
+async function fetchWeatherData(lat, lon) {
+    const response = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=imperial`
+    );
+    
+    if (!response.ok) {
+        throw new Error('Weather data not available');
+    }
+    
+    return response.json();
+}
+
+// Fetch altitude data from OpenElevation API
+async function fetchAltitude(lat, lon) {
+    const response = await fetch(
+        `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lon}`
+    );
+    
+    if (!response.ok) {
+        throw new Error('Altitude data not available');
+    }
+    
+    const data = await response.json();
+    return data.results[0].elevation;
+}
+
+// Update UI with weather data
+function updateWeatherUI(weatherData, altitude) {
+    // Update temperature
+    const tempElement = document.getElementById('temp');
+    if (tempElement) {
+        tempElement.textContent = `${Math.round(weatherData.main.temp)}°F`;
+    }
+
+    // Update humidity
+    const humidityElement = document.getElementById('humidity');
+    if (humidityElement) {
+        humidityElement.textContent = `${weatherData.main.humidity}%`;
+    }
+
+    // Update altitude
+    const altitudeElement = document.getElementById('altitude');
+    if (altitudeElement) {
+        altitudeElement.textContent = `${Math.round(altitude)} ft`;
+    }
+
+    // Update pressure
+    const pressureElement = document.getElementById('pressure');
+    if (pressureElement) {
+        pressureElement.textContent = `${weatherData.main.pressure} hPa`;
+    }
+
+    // Update wind speed
+    const windSpeedElement = document.getElementById('wind-speed');
+    if (windSpeedElement) {
+        windSpeedElement.textContent = `${Math.round(weatherData.wind.speed)} mph`;
+    }
+
+    // Update wind direction
+    const windDirElement = document.getElementById('wind-direction');
+    if (windDirElement) {
+        const direction = getWindDirection(weatherData.wind.deg);
+        windDirElement.textContent = direction;
+    }
+
+    // If we're on the weather page, update the input fields
+    const temperatureInput = document.getElementById('temperature');
+    const humidityInput = document.getElementById('humidity');
+    const altitudeInput = document.getElementById('altitude');
+    
+    if (temperatureInput) temperatureInput.value = Math.round(weatherData.main.temp);
+    if (humidityInput) humidityInput.value = weatherData.main.humidity;
+    if (altitudeInput) altitudeInput.value = Math.round(altitude);
+
+    // If we're on the wind page, update the input fields
+    const windSpeedInput = document.getElementById('wind-speed');
+    const windDirectionSelect = document.getElementById('wind-direction');
+    
+    if (windSpeedInput) windSpeedInput.value = Math.round(weatherData.wind.speed);
+    if (windDirectionSelect) {
+        const direction = getWindDirection(weatherData.wind.deg);
+        windDirectionSelect.value = direction;
+    }
+}
+
+// Convert wind degrees to cardinal direction
+function getWindDirection(degrees) {
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    const index = Math.round(degrees / 45) % 8;
+    return directions[index];
+}
+
+// Calculate yardage adjustments
+function calculateYardageAdjustment(temperature, humidity, altitude) {
+    // Add your yardage calculation logic here
+    // This is a placeholder implementation
+    const tempEffect = (temperature - 70) * 0.1;
+    const humidityEffect = (humidity - 50) * 0.05;
+    const altitudeEffect = altitude * 0.002;
+    
+    return {
+        tempEffect,
+        humidityEffect,
+        altitudeEffect,
+        total: tempEffect + humidityEffect + altitudeEffect
+    };
+}
+
+// Export functions for use in other files
+window.golfApp = {
+    getCurrentWeather,
+    calculateYardageAdjustment
+};

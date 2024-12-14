@@ -1,0 +1,155 @@
+<html>
+<head>
+    <title>Golf Yardage Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1a202c;
+            background-image: url('https://placehold.co/1920x1080?text=Background+image+of+a+golf+course+with+wind+wisps');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .overlay {
+            background-color: rgba(26, 32, 44, 0.8);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .tab-link.active {
+            background-color: #2d3748;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="container mx-auto p-4">
+            <div class="bg-blue-600 text-white text-center py-4 rounded-lg shadow-lg">
+                <h1 class="text-2xl font-bold">Golf Yardage Calculator</h1>
+            </div>
+            <div id="home" class="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg active">
+                <h2 class="text-xl font-bold mb-4">Welcome to the Golf Yardage Calculator</h2>
+                <p>Select a tab to get started with your golf yardage calculations.</p>
+                <a href="#current-weather" class="block bg-blue-600 text-white text-center py-2 px-4 mt-4 rounded-lg shadow-lg">Current Weather</a>
+                <div class="weather-info text-center mt-4" id="current-weather">
+                    <h3 class="text-lg font-bold">Weather Information</h3>
+                    <p>Temperature: 72°F</p>
+                    <p>Humidity: 50%</p>
+                    <p>Altitude: 500 ft</p>
+                    <p>Pressure: 1013 hPa</p>
+                </div>
+            </div>
+            <div id="your-clubs" class="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Your Clubs</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-bold">Club</h3>
+                        <p>Driver</p>
+                        <p>3-Wood</p>
+                        <p>5-Wood</p>
+                        <p>3-Iron</p>
+                        <p>4-Iron</p>
+                        <p>5-Iron</p>
+                        <p>6-Iron</p>
+                        <p>7-Iron</p>
+                        <p>8-Iron</p>
+                        <p>9-Iron</p>
+                        <p>Pitching Wedge</p>
+                        <p>Sand Wedge</p>
+                        <p>Lob Wedge</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold">Distance (yards)</h3>
+                        <p>250</p>
+                        <p>230</p>
+                        <p>210</p>
+                        <p>200</p>
+                        <p>190</p>
+                        <p>180</p>
+                        <p>170</p>
+                        <p>160</p>
+                        <p>150</p>
+                        <p>140</p>
+                        <p>130</p>
+                        <p>120</p>
+                        <p>110</p>
+                    </div>
+                </div>
+            </div>
+            <div id="distance-calc" class="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Distance Calc</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-bold">Club</h3>
+                        <p>Driver</p>
+                        <p>3-Wood</p>
+                        <p>5-Wood</p>
+                        <p>3-Iron</p>
+                        <p>4-Iron</p>
+                        <p>5-Iron</p>
+                        <p>6-Iron</p>
+                        <p>7-Iron</p>
+                        <p>8-Iron</p>
+                        <p>9-Iron</p>
+                        <p>Pitching Wedge</p>
+                        <p>Sand Wedge</p>
+                        <p>Lob Wedge</p>
+                    </div>
+                    <div>
+                        <h3 class="font-bold">Adjusted Distance (yards)</h3>
+                        <p>245</p>
+                        <p>225</p>
+                        <p>205</p>
+                        <p>195</p>
+                        <p>185</p>
+                        <p>175</p>
+                        <p>165</p>
+                        <p>155</p>
+                        <p>145</p>
+                        <p>135</p>
+                        <p>125</p>
+                        <p>115</p>
+                        <p>105</p>
+                    </div>
+                </div>
+            </div>
+            <div id="wind-adjuster" class="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+                <h2 class="text-xl font-bold mb-4">Wind Adjuster</h2>
+                <p>Wind adjustment functionality coming soon!</p>
+            </div>
+        </div>
+        <div class="flex justify-around bg-gray-900 text-white py-4 rounded-t-lg shadow-lg">
+            <a href="#home" class="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg active" data-tab="home"><i class="fas fa-home"></i> Home</a>
+            <a href="#your-clubs" class="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="your-clubs"><i class="fas fa-golf-club"></i> Your Clubs</a>
+            <a href="#distance-calc" class="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="distance-calc"><i class="fas fa-ruler"></i> Distance Calc</a>
+            <a href="#wind-adjuster" class="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="wind-adjuster"><i class="fas fa-wind"></i> Wind Adjuster</a>
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll('.tab-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const tab = this.getAttribute('data-tab');
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-link').forEach(link => {
+                    link.classList.remove('active');
+                });
+                document.getElementById(tab).classList.add('active');
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

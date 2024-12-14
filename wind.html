@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Calculate golf yardage adjustments based on wind conditions">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Wind Adjust">
+    
+    <title>Wind Adjustment - Golf Yardage Calculator</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8 animate-fade-in">
+            <a href="index.html" class="inline-block mb-4">
+                <svg class="w-6 h-6 text-gray-600 hover:text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">Wind Adjustment</h1>
+            <p class="text-gray-600">Calculate yardage adjustments based on wind speed and direction</p>
+        </header>
+
+        <main class="max-w-2xl mx-auto">
+            <!-- Wind Inputs -->
+            <div class="card mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Wind Conditions</h2>
+                <div class="space-y-4">
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="wind-speed">
+                            Wind Speed (mph)
+                        </label>
+                        <input type="number" id="wind-speed" class="input-field" placeholder="0"
+                               data-tooltip="Wind speed affects ball trajectory">
+                    </div>
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="wind-direction">
+                            Wind Direction
+                        </label>
+                        <select id="wind-direction" class="input-field"
+                                data-tooltip="Direction the wind is coming from">
+                            <option value="N">North (Headwind)</option>
+                            <option value="NE">Northeast</option>
+                            <option value="E">East (Right to Left)</option>
+                            <option value="SE">Southeast</option>
+                            <option value="S">South (Tailwind)</option>
+                            <option value="SW">Southwest</option>
+                            <option value="W">West (Left to Right)</option>
+                            <option value="NW">Northwest</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-1" for="shot-height">
+                            Shot Height
+                        </label>
+                        <select id="shot-height" class="input-field"
+                                data-tooltip="Affects wind influence on the ball">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wind Visualization -->
+            <div class="card mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Wind Visualization</h2>
+                <div class="wind-compass relative w-48 h-48 mx-auto mb-4">
+                    <div class="compass-direction n">N</div>
+                    <div class="compass-direction e">E</div>
+                    <div class="compass-direction s">S</div>
+                    <div class="compass-direction w">W</div>
+                    <div id="windArrow" class="wind-arrow"></div>
+                </div>
+                <div id="wind-effect" class="p-4 bg-blue-50 rounded-lg text-center">
+                    <span class="text-lg font-medium text-blue-900">No wind effect</span>
+                </div>
+            </div>
+
+            <!-- Shot Trajectory -->
+            <div class="card">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Shot Trajectory</h2>
+                <div class="trajectory-container">
+                    <canvas id="trajectoryChart"></canvas>
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div class="result-card">
+                        <span class="text-sm text-gray-600">Carry Effect</span>
+                        <div id="carry-effect" class="text-2xl font-semibold text-gray-900">+0 yds</div>
+                    </div>
+                    <div class="result-card">
+                        <span class="text-sm text-gray-600">Side Effect</span>
+                        <div id="side-effect" class="text-2xl font-semibold text-gray-900">0 yds</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="wind.js"></script>
+</body>
+</html>
