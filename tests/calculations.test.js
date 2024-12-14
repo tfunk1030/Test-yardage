@@ -2,7 +2,7 @@
  * Unit tests for core calculations
  */
 
-import { calculateWindEffect } from '../src/calculations/wind-calculations.js';
+import { calculateWindEffect } from '../src/calculation../calculations/wind-calculations.js';
 import { calculateAltitudeEffect } from '../src/calculations/altitude-calculations.js';
 import { calculateAirDensity, calculateDewPoint, calculateAirDensityEffects } from '../src/calculations/air-density-calculations.js';
 import { PGA_CLUB_DATA, PARAMETER_RANGES } from '../constants/club-data.js';

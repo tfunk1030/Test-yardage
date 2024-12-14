@@ -4,7 +4,7 @@ import {
     calculateSpinDecay,
     calculateDewPointEffect,
     calculateBallFlightAdjustments
-} from './ball-physics.js';
+} from '../ball-physics.js';
 
 // Test cases for dew point conditions
 const testCases = [

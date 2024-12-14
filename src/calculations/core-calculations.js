@@ -1,5 +1,5 @@
 // Core calculation functions module
-import { calculateTrajectory } from './ball-physics.js';
+import { calculateTrajectory } from '../ball-physics.js';
 
 /**
  * Core calculation functions module containing all physics and adjustment calculations

@@ -1,108 +1,107 @@
-/**
- * Web Worker for handling heavy calculations
- */
+// Import required functions
+import { calculateWindEffect, calculateAltitudeEffect, calculateAirDensityRatio } from '../calculations/core-calculations.js';
+import { calculateTrajectory } from '../ball-physics.js';
 
-import { calculateWindEffect } from '../calculations/wind-calculations.js';
-import { calculateAltitudeEffect } from '../calculations/altitude-calculations.js';
-import { calculateAirDensityEffects } from '../calculations/air-density-calculations.js';
-
-// Cache for storing calculation results
+// Cache for calculations
 const calculationCache = new Map();
 
-// Handle messages from the main thread
+// Generate cache key from conditions
+function generateCacheKey(conditions) {
+    return JSON.stringify({
+        temperature: Math.round(conditions.temperature),
+        humidity: Math.round(conditions.humidity),
+        altitude: Math.round(conditions.altitude),
+        windSpeed: Math.round(conditions.windSpeed),
+        windDirection: conditions.windDirection,
+        shotHeight: conditions.shotHeight
+    });
+}
+
+// Handle calculation requests
 self.onmessage = function(e) {
-    const { type, data, cacheKey } = e.data;
-    
-    // Check cache first
-    if (cacheKey && calculationCache.has(cacheKey)) {
-        self.postMessage({
-            type: type,
-            result: calculationCache.get(cacheKey),
-            cached: true
-        });
-        return;
-    }
-    
-    let result;
+    const { conditions, id } = e.data;
     
     try {
-        switch (type) {
-            case 'wind':
-                result = calculateWindEffect(
-                    data.windSpeed,
-                    data.windDirection,
-                    data.shotHeight
-                );
-                break;
-                
-            case 'altitude':
-                result = calculateAltitudeEffect(data.altitude);
-                break;
-                
-            case 'airDensity':
-                result = calculateAirDensityEffects(
-                    data.conditions,
-                    data.ballData
-                );
-                break;
-                
-            case 'fullCalculation':
-                // Perform all calculations
-                const windEffect = calculateWindEffect(
-                    data.windSpeed,
-                    data.windDirection,
-                    data.shotHeight
-                );
-                
-                const altitudeEffect = calculateAltitudeEffect(data.altitude);
-                
-                const airDensityEffects = calculateAirDensityEffects(
-                    data.conditions,
-                    data.ballData
-                );
-                
-                result = {
-                    wind: windEffect,
-                    altitude: altitudeEffect,
-                    airDensity: airDensityEffects,
-                    total: {
-                        distanceEffect: windEffect.distanceEffect * altitudeEffect.total * airDensityEffects.effects.carry,
-                        spinEffect: airDensityEffects.effects.spin
-                    }
-                };
-                break;
-                
-            default:
-                throw new Error(`Unknown calculation type: ${type}`);
+        // Check cache first
+        const cacheKey = generateCacheKey(conditions);
+        if (calculationCache.has(cacheKey)) {
+            self.postMessage({
+                results: calculationCache.get(cacheKey),
+                id,
+                error: null,
+                cached: true
+            });
+            return;
+        }
+
+        // Perform calculations
+        const results = calculateBallFlightAdjustments(conditions);
+        
+        // Cache results
+        calculationCache.set(cacheKey, results);
+        
+        // Limit cache size to prevent memory issues
+        if (calculationCache.size > 100) {
+            const firstKey = calculationCache.keys().next().value;
+            calculationCache.delete(firstKey);
         }
         
-        // Cache the result
-        if (cacheKey) {
-            calculationCache.set(cacheKey, result);
-            
-            // Limit cache size
-            if (calculationCache.size > 1000) {
-                const firstKey = calculationCache.keys().next().value;
-                calculationCache.delete(firstKey);
-            }
-        }
-        
+        // Send results back to main thread
         self.postMessage({
-            type: type,
-            result: result,
+            results,
+            id,
+            error: null,
             cached: false
         });
-        
     } catch (error) {
         self.postMessage({
-            type: type,
-            error: error.message
+            results: null,
+            id,
+            error: error.message,
+            cached: false
         });
     }
 };
 
-// Handle cache clearing
-self.onclear = function() {
-    calculationCache.clear();
-    self.postMessage({ type: 'cacheClear', success: true });
-};
+// Main calculation function
+function calculateBallFlightAdjustments(conditions) {
+    const {
+        temperature,
+        humidity,
+        altitude,
+        windSpeed,
+        windDirection,
+        shotHeight
+    } = conditions;
+    
+    // Calculate air density ratio
+    const airDensity = calculateAirDensityRatio({
+        temp: temperature,
+        humidity: humidity,
+        altitude: altitude
+    });
+    
+    // Calculate wind effect
+    const windEffect = calculateWindEffect(windSpeed, windDirection, shotHeight);
+    
+    // Calculate altitude effect
+    const altitudeEffect = calculateAltitudeEffect(altitude);
+    
+    // Calculate trajectory with all effects combined
+    const trajectory = calculateTrajectory({
+        airDensity,
+        windEffect,
+        altitudeEffect
+    });
+    
+    return {
+        airDensityFactor: airDensity,
+        windEffect: windEffect,
+        altitudeEffect: altitudeEffect,
+        trajectory: trajectory,
+        maxHeight: trajectory.maxHeight,
+        landingAngle: trajectory.landingAngle,
+        carryDistance: trajectory.carryDistance,
+        timestamp: Date.now()
+    };
+}

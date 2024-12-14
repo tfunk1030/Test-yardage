@@ -3,7 +3,7 @@
  */
 export class CalculationManager {
     constructor() {
-        this.worker = new Worker(new URL('../workers/calculations-worker.js', import.meta.url), { type: 'module' });
+        this.worker = new Worker(new URL('../worker../workers/calculations-worker.js', import.meta.url), { type: 'module' });
         this.callbacks = new Map();
         this.setupWorker();
     }
