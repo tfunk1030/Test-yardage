@@ -2,237 +2,116 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="Calculate golf yardage adjustments based on wind conditions">
-    <meta name="theme-color" content="#4ade80">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Wind Adjust">
-    
-    <title>Wind Adjustment - Golf Yardage Calculator</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wind Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* Loading spinner */
-        .loading-spinner {
-            border: 3px solid rgba(74, 222, 128, 0.3);
-            border-radius: 50%;
-            border-top: 3px solid #4ade80;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: none;
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #1a202c;
+            background-image: url('https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?ixlib=rb-4.0.3');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .overlay {
+            background-color: rgba(26, 32, 44, 0.9);
+            min-height: 100vh;
         }
-        
-        /* Wind compass */
-        .wind-compass {
-            position: relative;
-            width: 200px;
-            height: 200px;
-            border: 2px solid #4ade80;
-            border-radius: 50%;
-            margin: 0 auto;
-        }
-        
-        .compass-direction {
-            position: absolute;
-            font-weight: 600;
-            color: #4ade80;
-        }
-        
-        .compass-direction.n { top: 10px; left: 50%; transform: translateX(-50%); }
-        .compass-direction.e { right: 10px; top: 50%; transform: translateY(-50%); }
-        .compass-direction.s { bottom: 10px; left: 50%; transform: translateX(-50%); }
-        .compass-direction.w { left: 10px; top: 50%; transform: translateY(-50%); }
-        
         .wind-arrow {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 4px;
-            height: 80px;
-            background-color: #4ade80;
-            transform-origin: bottom center;
-            transform: translate(-50%, -50%) rotate(0deg);
             transition: transform 0.3s ease;
-        }
-        
-        .wind-arrow::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-bottom: 12px solid #4ade80;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 640px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .card {
-                margin-bottom: 1rem;
-                padding: 1rem;
-            }
-            
-            .wind-compass {
-                width: 160px;
-                height: 160px;
-            }
-            
-            .wind-arrow {
-                height: 60px;
-            }
-            
-            .trajectory-container {
-                height: 200px;
-            }
         }
     </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-    <!-- Loading Indicator -->
-    <div id="loading-indicator" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-gray-800 rounded-lg p-6 flex flex-col items-center">
-            <div class="loading-spinner mb-4"></div>
-            <p class="text-white">Calculating wind effects...</p>
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Wind Calculator</h1>
+
+        <!-- Current Weather Section -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">Current Weather</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <p class="text-gray-400">Wind Speed</p>
+                    <p id="current-wind-speed" class="text-2xl">-- mph</p>
+                </div>
+                <div>
+                    <p class="text-gray-400">Wind Direction</p>
+                    <p id="current-wind-direction" class="text-2xl">--</p>
+                </div>
+                <div>
+                    <p class="text-gray-400">Last Updated</p>
+                    <p id="last-updated" class="text-sm">--</p>
+                    <button id="refresh-weather" class="mt-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shot Input Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Shot Details</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="wind-speed" class="block text-gray-400">Wind Speed (mph)</label>
+                        <input type="number" id="wind-speed" class="bg-gray-700 text-white rounded px-3 py-2 w-full" value="0">
+                    </div>
+                    <div>
+                        <label for="wind-angle" class="block text-gray-400">Wind Direction (degrees)</label>
+                        <input type="number" id="wind-angle" class="bg-gray-700 text-white rounded px-3 py-2 w-full" value="0">
+                    </div>
+                    <div>
+                        <label for="shot-distance" class="block text-gray-400">Shot Distance (yards)</label>
+                        <input type="number" id="shot-distance" class="bg-gray-700 text-white rounded px-3 py-2 w-full" value="150">
+                    </div>
+                    <div>
+                        <label for="shot-height" class="block text-gray-400">Shot Height (yards)</label>
+                        <input type="number" id="shot-height" class="bg-gray-700 text-white rounded px-3 py-2 w-full" value="20">
+                    </div>
+                    <div>
+                        <label for="shot-direction" class="block text-gray-400">Shot Direction (degrees)</label>
+                        <input type="number" id="shot-direction" class="bg-gray-700 text-white rounded px-3 py-2 w-full" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wind Effect Display -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">Wind Effect</h2>
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-gray-400">Adjusted Distance</p>
+                        <p id="adjusted-distance" class="text-2xl">--</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Distance Effect (Wind)</p>
+                        <p id="distance-effect" class="text-2xl">--</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Distance Effect (Temperature)</p>
+                        <p id="temp-effect" class="text-2xl">--</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-400">Lateral Effect</p>
+                        <p id="lateral-effect" class="text-2xl">--</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shot Visualization -->
+        <div class="mt-8 bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Shot Visualization</h2>
+            <div class="aspect-square max-w-lg mx-auto">
+                <canvas id="shot-chart" class="w-full h-full bg-gray-700"></canvas>
+            </div>
         </div>
     </div>
 
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <header class="flex items-center justify-between mb-8">
-            <div class="flex items-center">
-                <a href="index.html" class="text-green-500 hover:text-green-400 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                </a>
-                <h1 class="text-2xl md:text-3xl font-bold text-green-500 ml-4">Wind Adjustment</h1>
-            </div>
-            <button id="get-weather" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                Get Current
-            </button>
-        </header>
-
-        <main class="max-w-2xl mx-auto">
-            <!-- Wind Inputs -->
-            <div class="card bg-gray-800 rounded-xl p-6 shadow-lg mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2" for="wind-speed">
-                            Wind Speed (mph)
-                        </label>
-                        <input type="number" id="wind-speed" 
-                            class="input-field block w-full rounded-lg bg-gray-700 border-gray-600 text-white shadow-sm focus:border-green-500 focus:ring-green-500"
-                            placeholder="0" min="0" max="50">
-                        <div class="error-message hidden"></div>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2" for="wind-direction">
-                            Wind Direction
-                        </label>
-                        <select id="wind-direction" 
-                            class="input-field block w-full rounded-lg bg-gray-700 border-gray-600 text-white shadow-sm focus:border-green-500 focus:ring-green-500">
-                            <option value="N">North (Headwind)</option>
-                            <option value="NE">Northeast</option>
-                            <option value="E">East (Right to Left)</option>
-                            <option value="SE">Southeast</option>
-                            <option value="S">South (Tailwind)</option>
-                            <option value="SW">Southwest</option>
-                            <option value="W">West (Left to Right)</option>
-                            <option value="NW">Northwest</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="block text-sm font-medium text-gray-300 mb-2" for="shot-height">
-                            Shot Height
-                        </label>
-                        <select id="shot-height" 
-                            class="input-field block w-full rounded-lg bg-gray-700 border-gray-600 text-white shadow-sm focus:border-green-500 focus:ring-green-500">
-                            <option value="low">Low</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="high">High</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Wind Visualization -->
-            <div class="card bg-gray-800 rounded-xl p-6 shadow-lg mb-6">
-                <h2 class="text-xl font-semibold text-gray-300 mb-4">Wind Visualization</h2>
-                <div class="wind-compass mb-6"></div>
-                <div id="wind-effect" class="p-4 bg-gray-700 rounded-lg text-center">
-                    <span class="text-lg font-medium text-gray-300">No wind effect</span>
-                </div>
-            </div>
-
-            <!-- Shot Trajectory -->
-            <div class="card bg-gray-800 rounded-xl p-6 shadow-lg">
-                <h2 class="text-xl font-semibold text-gray-300 mb-4">Shot Trajectory</h2>
-                <div class="trajectory-container h-64 mb-6">
-                    <canvas id="trajectoryChart"></canvas>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-gray-700 rounded-lg p-4">
-                        <span class="text-sm text-gray-400">Carry Effect</span>
-                        <div id="carry-effect" class="text-2xl font-semibold text-green-500">+0 yds</div>
-                    </div>
-                    <div class="bg-gray-700 rounded-lg p-4">
-                        <span class="text-sm text-gray-400">Side Effect</span>
-                        <div id="side-effect" class="text-2xl font-semibold text-green-500">0 yds</div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- Navigation -->
-        <nav class="nav-bottom fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-10">
-            <div class="container mx-auto">
-                <div class="flex justify-around py-4">
-                    <a href="index.html" class="nav-item flex flex-col items-center text-gray-400 hover:text-green-500 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                        </svg>
-                        <span class="text-sm mt-1">Home</span>
-                    </a>
-                    <a href="weather.html" class="nav-item flex flex-col items-center text-gray-400 hover:text-green-500 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
-                        </svg>
-                        <span class="text-sm mt-1">Weather</span>
-                    </a>
-                    <a href="wind.html" class="nav-item flex flex-col items-center text-green-500">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
-                        </svg>
-                        <span class="text-sm mt-1">Wind</span>
-                    </a>
-                </div>
-            </div>
-        </nav>
-    </div>
-
-    <script type="module" src="../src/main.js"></script>
+    <script src="wind.bundle.js"></script>
 </body>
 </html>

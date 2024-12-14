@@ -21,16 +21,13 @@
 
 /* General Styles */
 body {
-    font-family: 'Roboto', sans-serif;
-    background-color: #1a202c;
-    background-image: url('https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?ixlib=rb-4.0.3');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
     margin: 0;
     padding: 0;
-    color: white;
     min-height: 100vh;
+    line-height: 1.5;
 }
 
 .container {
@@ -41,82 +38,84 @@ body {
     z-index: 1;
 }
 
-/* Overlay */
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.7));
-    z-index: 0;
-}
-
-/* Card Styles */
+/* Cards and Components */
 .card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
     padding: 1.5rem;
     margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+    gap: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primary-600);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-700);
+    transform: translateY(-1px);
 }
 
 /* Form Elements */
-.input-field {
-    width: 100%;
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(5px);
-    color: white;
-    margin-bottom: 1rem;
-    transition: all 0.3s ease;
+.input-group {
+    margin-bottom: 1.5rem;
 }
 
-.input-field:focus {
+.label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #e2e8f0;
+}
+
+.input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(30, 41, 59, 0.6);
+    color: white;
+    transition: border-color 0.2s;
+}
+
+.input:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
-}
-
-/* Button Styles */
-button {
-    width: 100%;
-    padding: 0.875rem;
-    border: none;
-    border-radius: 0.75rem;
-    background: linear-gradient(to right, var(--primary-600), var(--primary-500));
-    color: white;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-button:hover {
-    background: linear-gradient(to right, var(--primary-700), var(--primary-600));
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
 }
 
 /* Navigation */
 .nav-bottom {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 100;
+    background: rgba(30, 41, 59, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 50;
 }
 
 .nav-item {
@@ -124,79 +123,61 @@ button:hover {
     flex-direction: column;
     align-items: center;
     padding: 0.75rem;
-    color: #4b5563;
+    color: #94a3b8;
     text-decoration: none;
-    transition: all 0.3s ease;
-}
-
-.nav-item:hover {
-    color: var(--primary-500);
+    transition: color 0.2s;
 }
 
 .nav-item.active {
     color: var(--primary-500);
 }
 
-/* Results Section */
-.result-card {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(5px);
-    border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.nav-item:hover {
+    color: white;
+}
+
+/* Animations and Loading States */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.loading {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Charts and Data Visualization */
+.chart-container {
+    background: rgba(30, 41, 59, 0.6);
+    border-radius: 1rem;
     padding: 1rem;
-}
-
-.result-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary-500);
-}
-
-/* Weather Info Display */
-.weather-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.weather-item {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(5px);
-    border-radius: 0.75rem;
-    padding: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.weather-icon {
-    width: 2rem;
-    height: 2rem;
-    color: var(--primary-500);
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.3s ease-out forwards;
+    margin: 1rem 0;
 }
 
 /* Responsive Design */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
     .container {
-        padding: 0.75rem;
+        padding: 1rem;
     }
     
     .card {
         padding: 1rem;
     }
     
-    .weather-info {
-        grid-template-columns: 1fr;
+    .btn {
+        width: 100%;
     }
+}
+
+/* Utility Classes */
+.text-gradient {
+    background: linear-gradient(to right, var(--primary-400), var(--primary-600));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.glass-effect {
+    background: rgba(30, 41, 59, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }

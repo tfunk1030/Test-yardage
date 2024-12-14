@@ -5,48 +5,85 @@
 
 /**
  * Calculate altitude effect on shot distance
- * @param {number} altitude - Altitude in feet above sea level
- * @returns {number} Distance multiplier due to altitude
+ * @param {number} altitude - Altitude in feet
+ * @returns {Object} Altitude effect components
  */
-export function calculateAltitudeEffect(altitude) {
-    // Validate input
+export function calculateAltitudeEffect(altitude = 0) {
+    // Input validation with detailed error messages
     if (typeof altitude !== 'number' || isNaN(altitude)) {
+        console.error('Invalid altitude value:', altitude);
         throw new Error('Altitude must be a valid number');
     }
     if (altitude < 0) {
-        throw new Error('Altitude must be non-negative');
+        console.error('Negative altitude:', altitude);
+        throw new Error('Altitude cannot be negative');
     }
-    if (altitude >= 20000) {
-        throw new Error('Altitude must not exceed 20000 feet');
+    if (altitude > 15000) {
+        console.error('Altitude too high:', altitude);
+        throw new Error('Altitude cannot exceed 15,000 feet');
     }
 
-    // For sea level, return exactly 1.0
+    // For sea level, return no effect
     if (altitude === 0) {
-        return 1.0;
+        console.log('Sea level - no altitude effect');
+        return {
+            total: 1,
+            components: {
+                base: 0,
+                progressive: 0,
+                density: 1,
+                spin: 0
+            }
+        };
     }
 
-    // Base effect: approximately 1.1% increase per 1000 feet up to 5000 feet
-    const baseRate = 0.011;
-    let effect = 1.0 + (Math.min(altitude, 5000) / 1000) * baseRate;
+    // Calculate base effect (logarithmic scaling)
+    const baseEffect = Math.log(altitude / 1000 + 1) * 0.045;
 
-    // Additional effect above 5000 feet: reduced rate of increase
-    if (altitude > 5000) {
-        const reducedRate = 0.009; // 0.9% per 1000 feet
-        effect += ((altitude - 5000) / 1000) * reducedRate;
-    }
+    // Progressive scaling with altitude bands
+    let progressiveEffect = 0;
+    if (altitude > 2000) progressiveEffect += (altitude - 2000) / 120000;
+    if (altitude > 4000) progressiveEffect += (altitude - 4000) / 110000;
+    if (altitude > 6000) progressiveEffect += (altitude - 6000) / 100000;
 
-    // Return rounded value to avoid floating-point precision issues
-    return Number(effect.toFixed(6));
+    // Air density effect
+    const densityEffect = Math.exp(-altitude / 30000);
+
+    // Spin effect
+    const spinEffect = Math.min(altitude / 120000, 0.065);
+
+    // Calculate total effect
+    const totalEffect = 1 + ((baseEffect + progressiveEffect) * densityEffect);
+
+    // Log calculation results
+    console.log('Altitude calculation results:', {
+        altitude,
+        baseEffect,
+        progressiveEffect,
+        densityEffect,
+        spinEffect,
+        totalEffect
+    });
+
+    return {
+        total: Number(totalEffect.toFixed(6)),
+        components: {
+            base: Number(baseEffect.toFixed(6)),
+            progressive: Number(progressiveEffect.toFixed(6)),
+            density: Number(densityEffect.toFixed(6)),
+            spin: Number(spinEffect.toFixed(6))
+        }
+    };
 }
 
 /**
  * Calculate comprehensive altitude effects on ball flight
- * @param {number} altitude - Altitude in feet above sea level
+ * @param {number} altitude - Altitude in feet
  * @param {Object} ballData - Ball flight characteristics
  * @returns {Object} Altitude effects on various aspects of ball flight
  */
 export function calculateAltitudeEffects(altitude, ballData) {
-    const altitudeMultiplier = calculateAltitudeEffect(altitude);
+    const altitudeMultiplier = calculateAltitudeEffect(altitude).total;
     
     return {
         distance: altitudeMultiplier,
@@ -66,14 +103,50 @@ export function calculateOxygenDensity(altitude) {
 }
 
 /**
- * Calculate pressure at altitude
+ * Calculate pressure at a given altitude
  * @param {number} altitude - Altitude in feet
  * @returns {number} Pressure in inHg
  */
 export function calculatePressureAtAltitude(altitude) {
-    const alt = Number(altitude) || 0;
-    const standardPressure = 29.92; // inHg at sea level
-    return standardPressure * Math.exp(-alt / 27000);
+    if (typeof altitude !== 'number' || isNaN(altitude)) {
+        return 29.92; // Return sea level pressure for invalid inputs
+    }
+
+    // Base pressure at sea level (inHg)
+    const seaLevelPressure = 29.92;
+    
+    // For negative altitudes, increase pressure linearly
+    if (altitude < 0) {
+        return Number((seaLevelPressure + Math.abs(altitude) * 0.00113).toFixed(4));
+    }
+    
+    // Using empirically calibrated lookup table
+    const pressurePoints = [
+        { alt: 0, pressure: 29.92 },
+        { alt: 5000, pressure: 24.86 },
+        { alt: 10000, pressure: 20.67 },
+        { alt: 15000, pressure: 17.18 }
+    ];
+    
+    // Find the appropriate range and interpolate
+    for (let i = 0; i < pressurePoints.length - 1; i++) {
+        const lower = pressurePoints[i];
+        const upper = pressurePoints[i + 1];
+        
+        if (altitude <= lower.alt) {
+            return lower.pressure;
+        }
+        
+        if (altitude <= upper.alt) {
+            const ratio = (altitude - lower.alt) / (upper.alt - lower.alt);
+            const pressure = lower.pressure + (upper.pressure - lower.pressure) * ratio;
+            return Number(pressure.toFixed(4));
+        }
+    }
+    
+    // For altitudes above the highest point, use exponential decay
+    const last = pressurePoints[pressurePoints.length - 1];
+    return Number((last.pressure * Math.exp(-0.0000508 * (altitude - last.alt))).toFixed(4));
 }
 
 /**

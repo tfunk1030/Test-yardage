@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Golf Yardage Pro</title>
+    <title>Shot Calculator - Golf Yardage Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
@@ -26,50 +26,51 @@
 <body>
     <div class="overlay">
         <div class="max-w-lg w-full mx-4">
-            <!-- Main Card -->
             <div class="bg-gray-900/95 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden border border-gray-700/20">
                 <!-- Header -->
                 <div class="bg-gradient-to-r from-green-800 to-green-900 p-8">
                     <h1 class="text-4xl font-bold text-white flex items-center gap-4 justify-center">
                         <div class="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
-                            <i class="fas fa-golf-ball text-green-400 text-2xl"></i>
+                            <i class="fas fa-calculator text-green-400 text-2xl"></i>
                         </div>
-                        Golf Yardage Pro
+                        Shot Calculator
                     </h1>
                 </div>
 
-                <!-- Weather Section -->
+                <!-- Calculator -->
                 <div class="p-8">
-                    <div class="text-center mb-8">
-                        <button id="get-weather" class="bg-green-600 text-white px-8 py-4 rounded-xl text-xl font-semibold hover:bg-green-500 transition-all duration-300 flex items-center gap-3 mx-auto">
-                            <i class="fas fa-location-arrow"></i>
-                            Get Current Weather
-                        </button>
-                    </div>
-
-                    <!-- Weather Display -->
-                    <div id="weather-display" class="space-y-4 hidden">
+                    <div class="space-y-6">
+                        <!-- Distance Input -->
                         <div class="bg-gray-800 p-6 rounded-xl">
-                            <div class="flex items-center justify-between mb-4">
-                                <h2 class="text-xl font-semibold text-white">Current Conditions</h2>
-                                <span id="last-updated" class="text-sm text-gray-400"></span>
+                            <h2 class="text-xl font-semibold text-white mb-4">Shot Distance</h2>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-400 mb-1">Distance to Pin (yards)</label>
+                                    <input type="number" id="shot-distance" class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="Enter distance">
+                                </div>
+                                <button id="calculate-btn" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-500 transition-all duration-300">
+                                    Calculate Shot
+                                </button>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
+                        </div>
+
+                        <!-- Results -->
+                        <div id="results" class="bg-gray-800 p-6 rounded-xl hidden">
+                            <h2 class="text-xl font-semibold text-white mb-4">Recommended Clubs</h2>
+                            <div class="space-y-4">
                                 <div class="bg-gray-700/50 p-4 rounded-lg">
-                                    <div class="text-sm text-gray-400">Temperature</div>
-                                    <div class="text-2xl text-white mt-1" id="temperature">--</div>
+                                    <div class="text-sm text-gray-400">Playing Distance</div>
+                                    <div class="text-2xl text-white mt-1" id="adjusted-distance">--</div>
                                 </div>
-                                <div class="bg-gray-700/50 p-4 rounded-lg">
-                                    <div class="text-sm text-gray-400">Wind</div>
-                                    <div class="text-2xl text-white mt-1" id="wind">--</div>
-                                </div>
-                                <div class="bg-gray-700/50 p-4 rounded-lg">
-                                    <div class="text-sm text-gray-400">Humidity</div>
-                                    <div class="text-2xl text-white mt-1" id="humidity">--</div>
-                                </div>
-                                <div class="bg-gray-700/50 p-4 rounded-lg">
-                                    <div class="text-sm text-gray-400">Pressure</div>
-                                    <div class="text-2xl text-white mt-1" id="pressure">--</div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="bg-gray-700/50 p-4 rounded-lg">
+                                        <div class="text-sm text-gray-400">Club Option 1</div>
+                                        <div class="text-xl text-white mt-1" id="club-option-1">--</div>
+                                    </div>
+                                    <div class="bg-gray-700/50 p-4 rounded-lg">
+                                        <div class="text-sm text-gray-400">Club Option 2</div>
+                                        <div class="text-xl text-white mt-1" id="club-option-2">--</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -78,7 +79,7 @@
 
                 <!-- Navigation -->
                 <div class="flex justify-around bg-gray-900/80 backdrop-blur-sm border-t border-gray-800 p-4">
-                    <a href="index.html" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white">
+                    <a href="index.html" class="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 transition-all duration-300">
                         <i class="fas fa-cloud"></i>
                         <span>Weather</span>
                     </a>
@@ -86,7 +87,7 @@
                         <i class="fas fa-golf-ball"></i>
                         <span>Clubs</span>
                     </a>
-                    <a href="calculator.html" class="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 transition-all duration-300">
+                    <a href="calculator.html" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white">
                         <i class="fas fa-calculator"></i>
                         <span>Calculator</span>
                     </a>
@@ -98,6 +99,6 @@
             </div>
         </div>
     </div>
-    <script src="main.bundle.js"></script>
+    <script src="calculator.bundle.js"></script>
 </body>
 </html>

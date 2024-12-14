@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Weather Adjustments - Golf Yardage Calculator</title>
+    <title>Weather Adjustments - Golf Yardage Pro</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
@@ -13,195 +13,157 @@
     <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json">
     
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* Loading spinner */
-        .loading-spinner {
-            border: 3px solid rgba(74, 222, 128, 0.3);
-            border-radius: 50%;
-            border-top: 3px solid #4ade80;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 640px) {
-            .container {
-                padding: 1rem;
-            }
-            
-            .card {
-                margin-bottom: 1rem;
-                padding: 1rem;
-            }
-            
-            input[type="number"] {
-                font-size: 16px; /* Prevent iOS zoom */
-                padding: 0.5rem;
-            }
-            
-            .nav-bottom {
-                padding-bottom: env(safe-area-inset-bottom);
-            }
-        }
-        
-        /* Touch-friendly inputs */
-        input[type="number"] {
-            touch-action: manipulation;
-        }
-        
-        /* Active states */
-        .input-field:focus {
-            outline: 2px solid #4ade80;
-            outline-offset: 2px;
-        }
-        
-        /* Error states */
-        .input-error {
-            border-color: #ef4444;
-        }
-        
-        .error-message {
-            color: #ef4444;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-    </style>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-    <div class="overlay"></div>
-    <div class="container mx-auto px-4 py-8">
-        <header class="flex items-center justify-between mb-8">
-            <div class="flex items-center">
-                <a href="index.html" class="text-green-500 hover:text-green-400 transition-colors">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                </a>
-                <h1 class="text-2xl md:text-3xl font-bold text-green-500 ml-4">Weather Adjustment</h1>
+<body class="bg-slate-900">
+    <div class="min-h-screen pb-20">
+        <header class="py-6">
+            <div class="container mx-auto px-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <button onclick="history.back()" class="btn btn-icon">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                            </svg>
+                        </button>
+                        <h1 class="text-2xl font-bold text-gradient">Weather Adjustments</h1>
+                    </div>
+                    <button id="refreshBtn" class="btn btn-primary">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        <span class="hidden md:inline ml-2">Refresh Weather</span>
+                    </button>
+                </div>
             </div>
-            <button id="get-weather" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                Get Current
-            </button>
         </header>
 
-        <main class="max-w-2xl mx-auto">
-            <!-- Loading Indicator -->
-            <div id="loading-indicator" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-gray-800 rounded-lg p-6 flex flex-col items-center">
-                    <div class="loading-spinner mb-4"></div>
-                    <p class="text-white">Calculating adjustments...</p>
+        <main class="container mx-auto px-4">
+            <!-- Current Weather Card -->
+            <div class="card mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gradient">Current Weather</h2>
+                    <div class="text-sm text-gray-400" id="lastUpdated">Updated: Just now</div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            <span class="text-sm text-gray-400">Temperature</span>
+                        </div>
+                        <div class="text-2xl font-bold" id="temperature">72°F</div>
+                    </div>
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                            </svg>
+                            <span class="text-sm text-gray-400">Humidity</span>
+                        </div>
+                        <div class="text-2xl font-bold" id="humidity">45%</div>
+                    </div>
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                            </svg>
+                            <span class="text-sm text-gray-400">Altitude</span>
+                        </div>
+                        <div class="text-2xl font-bold" id="altitude">850 ft</div>
+                    </div>
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="text-sm text-gray-400">Air Density</span>
+                        </div>
+                        <div class="text-2xl font-bold" id="airDensity">1.00</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="card bg-gray-800 rounded-xl p-6 shadow-lg mb-6">
-                <p class="text-gray-300 mb-6">Calculate yardage adjustments based on weather conditions</p>
-                
-                <form id="weatherForm" class="space-y-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="temperature" class="block text-sm font-medium text-gray-300">Temperature (°F)</label>
-                            <div class="mt-1 relative">
-                                <input type="number" id="temperature" name="temperature" value="72"
-                                    class="input-field block w-full rounded-lg bg-gray-700 border-gray-600 text-white shadow-sm focus:border-green-500 focus:ring-green-500"
-                                    min="-50" max="120">
-                                <div class="error-message hidden"></div>
-                            </div>
+            <!-- Manual Adjustments -->
+            <div class="card mb-8">
+                <h2 class="text-xl font-semibold mb-4 text-gradient">Manual Adjustments</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <div class="input-group">
+                            <label class="label" for="manualTemp">Temperature (°F)</label>
+                            <input type="number" id="manualTemp" class="input" placeholder="Enter temperature">
                         </div>
-                        
-                        <div>
-                            <label for="humidity" class="block text-sm font-medium text-gray-300">Humidity (%)</label>
-                            <div class="mt-1 relative">
-                                <input type="number" id="humidity" name="humidity" value="50"
-                                    class="input-field block w-full rounded-lg bg-gray-700 border-gray-600 text-white shadow-sm focus:border-green-500 focus:ring-green-500"
-                                    min="0" max="100">
-                                <div class="error-message hidden"></div>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label for="altitude" class="block text-sm font-medium text-gray-300">Altitude (ft)</label>
-                            <div class="mt-1 relative">
-                                <input type="number" id="altitude" name="altitude" value="0"
-                                    class="input-field block w-full rounded-lg bg-gray-700 border-gray-600 text-white shadow-sm focus:border-green-500 focus:ring-green-500"
-                                    min="-1000" max="15000">
-                                <div class="error-message hidden"></div>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="pressure" class="block text-sm font-medium text-gray-300">Pressure (inHg)</label>
-                            <div class="mt-1 relative">
-                                <input type="number" id="pressure" name="pressure" value="29.92" step="0.01"
-                                    class="input-field block w-full rounded-lg bg-gray-700 border-gray-600 text-white shadow-sm focus:border-green-500 focus:ring-green-500"
-                                    min="28" max="31">
-                                <div class="error-message hidden"></div>
-                            </div>
+                        <div class="input-group">
+                            <label class="label" for="manualHumidity">Humidity (%)</label>
+                            <input type="number" id="manualHumidity" class="input" placeholder="Enter humidity">
                         </div>
                     </div>
-
-                    <button type="submit"
-                        class="w-full bg-gradient-to-r from-green-600 to-green-500 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-green-600 transition-all duration-300 shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 flex items-center justify-center">
-                        <span>Calculate Adjustment</span>
-                        <div class="loading-spinner ml-3"></div>
-                    </button>
-                </form>
+                    <div>
+                        <div class="input-group">
+                            <label class="label" for="manualAltitude">Altitude (ft)</label>
+                            <input type="number" id="manualAltitude" class="input" placeholder="Enter altitude">
+                        </div>
+                        <button id="applyManual" class="btn btn-primary w-full">Apply Manual Adjustments</button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Results Section -->
-            <div id="results" class="card bg-gray-800 rounded-xl p-6 shadow-lg transition-all duration-300 transform scale-0 opacity-0">
-                <h3 class="text-xl font-semibold mb-4">Results</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-gray-700 rounded-lg p-4">
-                        <h4 class="text-sm font-medium text-gray-300">Air Density Effect</h4>
-                        <p id="densityEffect" class="text-2xl font-bold text-green-500">0%</p>
+            <!-- Impact Analysis -->
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4 text-gradient">Impact Analysis</h2>
+                <div class="chart-container mb-4">
+                    <canvas id="impactChart"></canvas>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="text-sm text-gray-400 mb-1">Temperature Effect</div>
+                        <div id="tempEffect" class="text-xl font-bold text-white">+2.3 yards</div>
                     </div>
-                    <div class="bg-gray-700 rounded-lg p-4">
-                        <h4 class="text-sm font-medium text-gray-300">Altitude Effect</h4>
-                        <p id="altitudeEffect" class="text-2xl font-bold text-green-500">0%</p>
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="text-sm text-gray-400 mb-1">Humidity Effect</div>
+                        <div id="humidityEffect" class="text-xl font-bold text-white">-0.8 yards</div>
                     </div>
-                    <div class="bg-gray-700 rounded-lg p-4">
-                        <h4 class="text-sm font-medium text-gray-300">Total Effect</h4>
-                        <p id="totalEffect" class="text-2xl font-bold text-green-500">0%</p>
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="text-sm text-gray-400 mb-1">Altitude Effect</div>
+                        <div id="altitudeEffect" class="text-xl font-bold text-white">+4.5 yards</div>
+                    </div>
+                    <div class="glass-effect p-4 rounded-lg">
+                        <div class="text-sm text-gray-400 mb-1">Total Effect</div>
+                        <div id="totalEffect" class="text-xl font-bold text-white">+6.0 yards</div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Navigation -->
-        <nav class="nav-bottom fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 z-10">
+        <nav class="nav-bottom">
             <div class="container mx-auto">
-                <div class="flex justify-around py-4">
-                    <a href="index.html" class="nav-item flex flex-col items-center text-gray-400 hover:text-green-500 transition-colors">
+                <div class="flex justify-around py-2">
+                    <a href="index.html" class="nav-item">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
                         </svg>
-                        <span class="text-sm mt-1">Home</span>
+                        <span class="text-xs mt-1">Home</span>
                     </a>
-                    <a href="weather.html" class="nav-item flex flex-col items-center text-green-500">
+                    <a href="weather.html" class="nav-item active">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
                         </svg>
-                        <span class="text-sm mt-1">Weather</span>
+                        <span class="text-xs mt-1">Weather</span>
                     </a>
-                    <a href="wind.html" class="nav-item flex flex-col items-center text-gray-400 hover:text-green-500 transition-colors">
+                    <a href="wind.html" class="nav-item">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
                         </svg>
-                        <span class="text-sm mt-1">Wind</span>
+                        <span class="text-xs mt-1">Wind</span>
                     </a>
                 </div>
             </div>
@@ -209,6 +171,6 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="../src/main.js"></script>
+    <script src="bundle.js"></script>
 </body>
 </html>

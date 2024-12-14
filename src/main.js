@@ -11,6 +11,8 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+import WindCalculator from './wind.js';
+
 // Initialize web worker for calculations
 const calculationWorker = new Worker('calculations-worker.js', { type: 'module' });
 const pendingCalculations = new Map();
@@ -259,7 +261,7 @@ function validateInputs() {
         
         const value = parseFloat(element.value);
         if (isNaN(value) || value < rules.min || value > rules.max) {
-            showError(rules.message);
+            showErrorMessage(rules.message);
             element.classList.add('error');
             isValid = false;
         } else {
@@ -271,12 +273,8 @@ function validateInputs() {
 }
 
 // Show error message
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message fixed top-4 right-4 bg-red-100 text-red-700 px-4 py-2 rounded-lg shadow-lg';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-    setTimeout(() => errorDiv.remove(), 3000);
+function showErrorMessage(message) {
+    alert(message);
 }
 
 // Initialize the application
@@ -284,6 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeChart();
     setupEventListeners();
     loadLastConditions();
+    
+    // Initialize wind calculator if on wind page
+    if (window.location.pathname.includes('wind.html')) {
+        new WindCalculator();
+    }
+    
+    window.golfApp = new GolfApp();
 });
 
 // Set up event listeners
@@ -327,3 +332,315 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+class GolfApp {
+    constructor() {
+        this.clubs = [
+            { name: 'Driver', distance: 260 },
+            { name: '3-Wood', distance: 230 },
+            { name: '5-Wood', distance: 210 },
+            { name: '4-Iron', distance: 190 },
+            { name: '5-Iron', distance: 180 },
+            { name: '6-Iron', distance: 170 },
+            { name: '7-Iron', distance: 160 },
+            { name: '8-Iron', distance: 150 },
+            { name: '9-Iron', distance: 140 },
+            { name: 'PW', distance: 130 },
+            { name: 'GW', distance: 120 },
+            { name: 'SW', distance: 110 },
+            { name: 'LW', distance: 90 }
+        ];
+        
+        this.recentCalculations = [];
+        this.initializeApp();
+    }
+
+    initializeApp() {
+        this.renderClubs();
+        this.fetchWeather();
+        this.setupEventListeners();
+        this.loadRecentCalculations();
+    }
+
+    renderClubs() {
+        const clubList = document.getElementById('club-list');
+        if (!clubList) return;
+
+        clubList.innerHTML = this.clubs.map(club => `
+            <div class="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl">
+                <span class="text-gray-200">${club.name}</span>
+                <span class="text-green-400">${club.distance} yards</span>
+            </div>
+        `).join('');
+    }
+
+    async fetchWeather() {
+        try {
+            // Get user's location
+            let lat = process.env.DEFAULT_LAT;
+            let lon = process.env.DEFAULT_LON;
+
+            try {
+                if (navigator.geolocation) {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject);
+                    });
+                    lat = position.coords.latitude;
+                    lon = position.coords.longitude;
+                }
+            } catch (error) {
+                console.warn('Using default location:', error);
+            }
+
+            const apiKey = process.env.WEATHER_API_KEY;
+            if (!apiKey) {
+                throw new Error('Weather API key not configured');
+            }
+
+            const response = await fetch(
+                `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=imperial`
+            );
+
+            if (!response.ok) {
+                throw new Error('Weather data fetch failed');
+            }
+
+            const data = await response.json();
+            this.updateWeatherDisplay(data);
+        } catch (error) {
+            console.error('Error fetching weather:', error);
+            this.updateWithMockWeather();
+        }
+    }
+
+    updateWeatherDisplay(data) {
+        // Update current wind preview
+        const currentWind = document.getElementById('current-wind');
+        if (currentWind) {
+            currentWind.textContent = `${Math.round(data.wind.speed)} mph ${this.getWindDirection(data.wind.deg)}`;
+        }
+
+        // Update detailed weather info
+        const temperature = document.getElementById('temperature');
+        const wind = document.getElementById('wind');
+        const humidity = document.getElementById('humidity');
+        const pressure = document.getElementById('pressure');
+
+        if (temperature) temperature.textContent = `${Math.round(data.main.temp)}°F`;
+        if (wind) wind.textContent = `${Math.round(data.wind.speed)} mph`;
+        if (humidity) humidity.textContent = `${data.main.humidity}%`;
+        if (pressure) pressure.textContent = `${data.main.pressure} hPa`;
+    }
+
+    updateWithMockWeather() {
+        const mockData = {
+            main: {
+                temp: 72,
+                humidity: 65,
+                pressure: 1013
+            },
+            wind: {
+                speed: 10,
+                deg: 45
+            }
+        };
+        this.updateWeatherDisplay(mockData);
+    }
+
+    getWindDirection(degrees) {
+        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
+                          'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        const index = Math.round(((degrees % 360) / 22.5)) % 16;
+        return directions[index];
+    }
+
+    addClub() {
+        const name = prompt('Enter club name:');
+        const distance = parseInt(prompt('Enter typical distance (yards):'));
+        
+        if (name && !isNaN(distance)) {
+            this.clubs.push({ name, distance });
+            this.renderClubs();
+            this.saveClubs();
+        }
+    }
+
+    saveClubs() {
+        localStorage.setItem('golfClubs', JSON.stringify(this.clubs));
+    }
+
+    loadClubs() {
+        const saved = localStorage.getItem('golfClubs');
+        if (saved) {
+            this.clubs = JSON.parse(saved);
+            this.renderClubs();
+        }
+    }
+
+    addRecentCalculation(calculation) {
+        this.recentCalculations.unshift(calculation);
+        if (this.recentCalculations.length > 5) {
+            this.recentCalculations.pop();
+        }
+        this.renderRecentCalculations();
+        this.saveRecentCalculations();
+    }
+
+    renderRecentCalculations() {
+        const recentCalcs = document.getElementById('recent-calcs');
+        if (!recentCalcs) return;
+
+        recentCalcs.innerHTML = this.recentCalculations.length ? 
+            this.recentCalculations.map(calc => `
+                <div class="flex justify-between items-center p-4 bg-gray-700/50 rounded-xl">
+                    <div>
+                        <div class="text-white">${calc.club} • ${calc.distance} yards</div>
+                        <div class="text-sm text-gray-400">Wind: ${calc.wind} mph ${calc.direction}</div>
+                    </div>
+                    <div class="text-green-400">${calc.adjustment}</div>
+                </div>
+            `).join('') :
+            '<div class="text-gray-400 text-center p-4">No recent calculations</div>';
+    }
+
+    saveRecentCalculations() {
+        localStorage.setItem('recentCalculations', JSON.stringify(this.recentCalculations));
+    }
+
+    loadRecentCalculations() {
+        const saved = localStorage.getItem('recentCalculations');
+        if (saved) {
+            this.recentCalculations = JSON.parse(saved);
+            this.renderRecentCalculations();
+        }
+    }
+
+    setupEventListeners() {
+        // Add club button
+        window.addClub = () => this.addClub();
+        
+        // Refresh weather button
+        window.refreshWeather = () => this.fetchWeather();
+    }
+}
+
+// Weather functionality
+document.addEventListener('DOMContentLoaded', () => {
+    const weatherButton = document.getElementById('get-weather');
+    const weatherDisplay = document.getElementById('weather-display');
+    const lastUpdated = document.getElementById('last-updated');
+    const tempDisplay = document.getElementById('temperature');
+    const windDisplay = document.getElementById('wind');
+    const humidityDisplay = document.getElementById('humidity');
+    const pressureDisplay = document.getElementById('pressure');
+
+    // Error handling function
+    function showErrorMessage(message) {
+        alert(message);
+    }
+
+    function saveWeatherData(data) {
+        const weatherData = {
+            data: data,
+            timestamp: new Date().getTime(),
+            expiresIn: 30 * 60 * 1000 // 30 minutes in milliseconds
+        };
+        localStorage.setItem('weatherData', JSON.stringify(weatherData));
+    }
+
+    function getStoredWeatherData() {
+        const storedData = localStorage.getItem('weatherData');
+        if (!storedData) return null;
+
+        const weatherData = JSON.parse(storedData);
+        const now = new Date().getTime();
+        const isExpired = (now - weatherData.timestamp) > weatherData.expiresIn;
+
+        if (isExpired) {
+            localStorage.removeItem('weatherData');
+            return null;
+        }
+
+        return weatherData.data;
+    }
+
+    function updateWeatherDisplay(data) {
+        tempDisplay.textContent = `${Math.round(data.values.temperature)}°F`;
+        windDisplay.textContent = `${Math.round(data.values.windSpeed)} mph ${getWindDirection(data.values.windDirection)}`;
+        humidityDisplay.textContent = `${Math.round(data.values.humidity)}%`;
+        pressureDisplay.textContent = `${Math.round(data.values.pressureSurfaceLevel)} hPa`;
+
+        weatherDisplay.classList.remove('hidden');
+        const timestamp = new Date(data.time || new Date()).toLocaleTimeString();
+        lastUpdated.textContent = `Updated ${timestamp}`;
+    }
+
+    async function getWeather() {
+        try {
+            // Check for cached weather data first
+            const cachedData = getStoredWeatherData();
+            if (cachedData) {
+                console.log('Using cached weather data');
+                updateWeatherDisplay(cachedData);
+                return;
+            }
+
+            weatherButton.disabled = true;
+            weatherButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+            // Get the user's location
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject);
+            });
+
+            const { latitude, longitude } = position.coords;
+            console.log('Location:', { latitude, longitude });
+            
+            // Call Tomorrow.io API
+            const url = `https://api.tomorrow.io/v4/weather/realtime?location=${latitude},${longitude}&units=imperial&apikey=jG9onLuVeiR4NWlVIO85EWWLCtQ2Uzqv`;
+            console.log('API URL:', url);
+
+            const response = await fetch(url);
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('API Error:', errorText);
+                throw new Error(`Weather API request failed: ${response.status} ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log('API Response:', data);
+
+            // Save the weather data
+            saveWeatherData(data.data);
+            
+            // Update display
+            updateWeatherDisplay(data.data);
+
+        } catch (error) {
+            console.error('Detailed error:', error);
+            showErrorMessage(`Unable to fetch weather data: ${error.message}`);
+        } finally {
+            weatherButton.disabled = false;
+            weatherButton.innerHTML = '<i class="fas fa-location-arrow"></i> Get Current Weather';
+        }
+    }
+
+    function getWindDirection(degrees) {
+        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        const index = Math.round(degrees / 22.5) % 16;
+        return directions[index];
+    }
+
+    // Event listeners
+    if (weatherButton) {
+        weatherButton.addEventListener('click', getWeather);
+        
+        // Check for cached weather data on page load
+        const cachedData = getStoredWeatherData();
+        if (cachedData) {
+            updateWeatherDisplay(cachedData);
+        }
+    }
+});

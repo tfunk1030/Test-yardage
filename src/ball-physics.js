@@ -105,14 +105,27 @@ export function calculateBallFlightAdjustments(conditions, ballData, clubData) {
  * Calculate ball compression factor
  * @param {Object} clubData - Club-specific data
  * @param {number} temperature - Temperature in Fahrenheit
+ * @param {number} humidity - Relative humidity (0-100)
  * @returns {number} Ball compression factor
  */
-export function calculateBallCompression(clubData, temperature) {
+export function calculateBallCompression(clubData, temperature, humidity) {
     if (!clubData) return 0.95; // default compression factor
     
     const baseCompression = clubData.compression || 0.95;
-    const tempEffect = (temperature - 70) * 0.0005;
-    return Math.max(0.85, Math.min(1.0, baseCompression + tempEffect));
+    
+    // Non-linear temperature effect (more pronounced at extremes)
+    const tempDiff = temperature - 70;
+    const tempEffect = Math.sign(tempDiff) * Math.pow(Math.abs(tempDiff) / 50, 1.2) * 0.05;
+    
+    // Humidity effect (higher humidity slightly reduces compression)
+    const humidityEffect = -0.02 * (humidity / 100);
+    
+    // Club-specific adjustments
+    const clubEffect = (clubData.ballSpeed || 150) / 150 * 0.02;
+    
+    // Calculate total compression factor with limits
+    const totalCompression = baseCompression + tempEffect + humidityEffect + clubEffect;
+    return Math.max(0.85, Math.min(1.0, totalCompression));
 }
 
 /**
@@ -126,36 +139,56 @@ export function calculateTrajectoryShape(clubData, airDensity) {
         return {
             timeToApex: 2.5,
             totalFlightTime: 5.0,
-            trajectoryShape: 1.0
+            trajectoryShape: 1.0,
+            magnusEffect: 0.0,
+            dragCoefficient: 0.3
         };
     }
     
     const {
         launchAngle = 12,
         apexHeight,
-        spinRate,
+        spinRate = 2500,
         carryDistance,
         landingAngle,
         ballSpeed = 150
     } = clubData;
 
-    // Calculate time to apex (assuming roughly parabolic flight)
-    const timeToApex = Math.sqrt((2 * apexHeight) / (32.2 * Math.sin(launchAngle * Math.PI / 180)));
+    // Calculate Reynolds number for drag coefficient
+    const kinematicViscosity = 1.46e-5 * (1 / airDensity); // Adjust for air density
+    const ballDiameter = 1.68 / 12; // inches to feet
+    const reynoldsNumber = (ballSpeed * ballDiameter) / kinematicViscosity;
     
-    // Total flight time (approximately 2x time to apex, adjusted for landing angle)
-    const totalFlightTime = timeToApex * (2 - (landingAngle - launchAngle) / 90);
+    // Calculate drag coefficient (varies with Reynolds number)
+    const dragCoefficient = 0.3 + 0.1 * Math.exp(-reynoldsNumber / 100000);
+    
+    // Calculate Magnus effect (lift coefficient)
+    const spinParameter = (spinRate * Math.PI / 30) * (ballDiameter / ballSpeed);
+    const magnusEffect = 0.00375 * spinParameter * airDensity;
+    
+    // Calculate time to apex with Magnus effect
+    const effectiveGravity = 32.2 * (1 - magnusEffect);
+    const timeToApex = Math.sqrt((2 * apexHeight) / (effectiveGravity * Math.sin(launchAngle * Math.PI / 180)));
+    
+    // Total flight time adjusted for drag and Magnus effect
+    const dragFactor = 1 + (dragCoefficient * airDensity * ballSpeed * 0.0001);
+    const totalFlightTime = timeToApex * (2 - (landingAngle - launchAngle) / 90) * dragFactor;
 
     // Calculate spin decay rate based on club characteristics
     const spinDecayRate = calculateClubSpinDecay(clubData, airDensity);
 
-    // Calculate trajectory shape factor (0-1, where 1 is perfectly parabolic)
-    const trajectoryShape = Math.min(1, (apexHeight * 2) / (carryDistance * Math.tan(launchAngle * Math.PI / 180)));
+    // Calculate trajectory shape factor with Magnus effect
+    const effectiveApexRatio = (apexHeight * 2) / (carryDistance * Math.tan(launchAngle * Math.PI / 180));
+    const magnusShapeEffect = magnusEffect * Math.sin(launchAngle * Math.PI / 180);
+    const trajectoryShape = Math.min(1, effectiveApexRatio * (1 + magnusShapeEffect));
 
     return {
         timeToApex,
         totalFlightTime,
         spinDecayRate,
-        trajectoryShape
+        trajectoryShape,
+        magnusEffect,
+        dragCoefficient
     };
 }
 
@@ -166,18 +199,26 @@ export function calculateTrajectoryShape(clubData, airDensity) {
  * @returns {number} Spin decay rate
  */
 export function calculateClubSpinDecay(clubData, airDensity) {
-    const { spinRate, launchAngle } = clubData;
+    if (!clubData) return 0.15;
     
-    // Base decay rate varies by initial spin (higher spin = faster decay)
-    const baseDecayRate = (spinRate / 10000) * 0.15;
+    const {
+        spinRate = 2500,
+        ballSpeed = 150,
+        launchAngle = 12
+    } = clubData;
     
-    // Launch angle affects decay (steeper launch = more decay)
-    const launchFactor = 1 + (launchAngle / 45) * 0.2;
+    // Base decay rate varies with spin rate and ball speed
+    const spinParameter = (spinRate * Math.PI / 30) * (1.68 / (12 * ballSpeed));
+    const baseDecayRate = 0.15 * (1 + spinParameter * 0.5);
     
-    // Air density impact (denser air = more decay)
-    const densityFactor = Math.pow(airDensity, 1.2);
+    // Air density effect (more dense air = faster spin decay)
+    const densityEffect = Math.pow(airDensity, 1.2);
     
-    return baseDecayRate * launchFactor * densityFactor;
+    // Launch angle effect (higher shots maintain spin longer)
+    const angleEffect = 1 - Math.sin(launchAngle * Math.PI / 180) * 0.2;
+    
+    // Calculate total decay rate
+    return baseDecayRate * densityEffect * angleEffect;
 }
 
 /**
