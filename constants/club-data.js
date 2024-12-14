@@ -146,12 +146,12 @@ export const PARAMETER_RANGES = {
     },
     spinRate: {
         min: 2000,  // rpm
-        max: 9500,  // rpm
+        max: 11000, // rpm (increased to accommodate lob wedge)
         tolerance: 500
     },
     launchAngle: {
         min: 8,     // degrees
-        max: 32,    // degrees
+        max: 35,    // degrees (increased to accommodate lob wedge)
         tolerance: 2
     },
     apexHeight: {

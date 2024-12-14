@@ -2,112 +2,127 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Golf Yardage Calculator</title>
-    <meta name="description" content="Calculate golf yardage adjustments based on weather and wind conditions">
-    <meta name="theme-color" content="#1a202c">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Yardage Calc">
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Styles -->
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="overlay">
-        <div class="container mx-auto p-4 pb-20">
-            <div class="bg-blue-600 text-white text-center py-4 rounded-lg shadow-lg">
-                <h1 class="text-2xl font-bold">Golf Yardage Calculator</h1>
+    <div class="overlay"></div>
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <div class="bg-gradient-to-r from-green-600 to-green-500 p-6 rounded-2xl shadow-lg">
+                <h1 class="text-3xl font-bold text-white">Golf Yardage Calculator</h1>
             </div>
+        </header>
 
-            <!-- Main Content -->
-            <div class="bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
-                <h2 class="text-xl font-bold mb-4">Welcome to the Golf Yardage Calculator</h2>
-                <p class="mb-4">Select an option below to calculate your adjusted yardage:</p>
+        <main>
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-4">Welcome to the Golf Yardage Calculator</h2>
+                <p class="text-gray-300 mb-4">Select an option below to calculate your adjusted yardage:</p>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid md:grid-cols-2 gap-6">
                     <!-- Weather Card -->
-                    <a href="weather.html" class="card hover:bg-gray-700 transition-colors">
-                        <div class="text-center">
-                            <i class="fas fa-cloud-sun text-4xl text-blue-400 mb-2"></i>
-                            <h3 class="text-lg font-bold mb-2">Weather Adjustment</h3>
-                            <p class="text-gray-300">Calculate yardage adjustments based on temperature, humidity, and altitude</p>
+                    <div class="card bg-white/95 backdrop-blur-sm">
+                        <div class="flex items-center justify-center mb-4">
+                            <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                            </svg>
                         </div>
-                    </a>
+                        <h3 class="text-center text-lg font-medium mb-2">Weather Adjustments</h3>
+                        <p class="text-center text-gray-600 text-sm">Calculate yardage adjustments based on temperature, humidity, and altitude</p>
+                        <a href="weather.html" class="block mt-4 text-center bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors">
+                            Calculate Weather Effects
+                        </a>
+                    </div>
 
                     <!-- Wind Card -->
-                    <a href="wind.html" class="card hover:bg-gray-700 transition-colors">
-                        <div class="text-center">
-                            <i class="fas fa-wind text-4xl text-blue-400 mb-2"></i>
-                            <h3 class="text-lg font-bold mb-2">Wind Adjustment</h3>
-                            <p class="text-gray-300">Calculate yardage adjustments based on wind speed and direction</p>
+                    <div class="card bg-white/95 backdrop-blur-sm">
+                        <div class="flex items-center justify-center mb-4">
+                            <svg class="w-12 h-12 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
                         </div>
-                    </a>
+                        <h3 class="text-center text-lg font-medium mb-2">Wind Adjustments</h3>
+                        <p class="text-center text-gray-600 text-sm">Calculate yardage adjustments based on wind speed and direction</p>
+                        <a href="wind.html" class="block mt-4 text-center bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors">
+                            Calculate Wind Effects
+                        </a>
+                    </div>
                 </div>
 
-                <!-- Current Weather Section -->
-                <div class="weather-info text-center mt-8 card" id="current-weather">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-bold">Current Weather</h3>
-                        <button id="get-weather" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center">
-                            <i class="fas fa-location-arrow mr-2"></i>
-                            Get Current Weather
-                        </button>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                        <div>
-                            <i class="fas fa-thermometer-half text-2xl text-blue-400 mb-2"></i>
-                            <p class="text-sm text-gray-400">Temperature</p>
-                            <p class="text-lg" id="temp">--°F</p>
-                        </div>
-                        <div>
-                            <i class="fas fa-tint text-2xl text-blue-400 mb-2"></i>
-                            <p class="text-sm text-gray-400">Humidity</p>
-                            <p class="text-lg" id="humidity">--%</p>
-                        </div>
-                        <div>
-                            <i class="fas fa-mountain text-2xl text-blue-400 mb-2"></i>
-                            <p class="text-sm text-gray-400">Altitude</p>
-                            <p class="text-lg" id="altitude">-- ft</p>
-                        </div>
-                        <div>
-                            <i class="fas fa-compress-arrows-alt text-2xl text-blue-400 mb-2"></i>
-                            <p class="text-sm text-gray-400">Pressure</p>
-                            <p class="text-lg" id="pressure">-- hPa</p>
-                        </div>
-                        <div>
-                            <i class="fas fa-wind text-2xl text-blue-400 mb-2"></i>
-                            <p class="text-sm text-gray-400">Wind Speed</p>
-                            <p class="text-lg" id="wind-speed">-- mph</p>
-                        </div>
-                        <div>
-                            <i class="fas fa-compass text-2xl text-blue-400 mb-2"></i>
-                            <p class="text-sm text-gray-400">Wind Direction</p>
-                            <p class="text-lg" id="wind-direction">--</p>
-                        </div>
-                    </div>
+                <!-- Get Current Weather Button -->
+                <div class="mt-8 text-center">
+                    <button id="get-weather" class="bg-gradient-to-r from-green-600 to-green-500 text-white py-3 px-6 rounded-xl hover:from-green-700 hover:to-green-600 transition-all duration-300 flex items-center justify-center mx-auto shadow-lg">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Get Current Weather
+                    </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Fixed Bottom Navigation -->
-        <div class="fixed bottom-0 left-0 right-0 nav-tabs">
-            <a href="#home" class="nav-tab active" data-tab="home">
-                <i class="fas fa-home"></i> Home
-            </a>
-            <a href="weather.html" class="nav-tab">
-                <i class="fas fa-cloud-sun"></i> Weather
-            </a>
-            <a href="wind.html" class="nav-tab">
-                <i class="fas fa-wind"></i> Wind
-            </a>
-        </div>
+            <!-- Results Section -->
+            <div id="results" class="card hidden">
+                <h3 class="text-xl font-semibold mb-4">Calculation Results</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-700 rounded p-4">
+                        <h4 class="text-lg mb-2">Distance Effect</h4>
+                        <p id="distanceEffect" class="text-2xl font-bold text-blue-500">0%</p>
+                    </div>
+                    <div class="bg-gray-700 rounded p-4">
+                        <h4 class="text-lg mb-2">Lateral Effect</h4>
+                        <p id="lateralEffect" class="text-2xl font-bold text-blue-500">0%</p>
+                    </div>
+                </div>
+                <div class="mt-6">
+                    <canvas id="shotChart" class="w-full h-64"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <!-- Navigation -->
+        <nav class="nav-bottom">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-around py-4">
+                    <a href="index.html" class="nav-item active">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                        </svg>
+                        <span class="text-sm mt-1">Home</span>
+                    </a>
+                    <a href="weather.html" class="nav-item">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+                        </svg>
+                        <span class="text-sm mt-1">Weather</span>
+                    </a>
+                    <a href="wind.html" class="nav-item">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                        <span class="text-sm mt-1">Wind</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Scripts -->
+    <script src="bundle.js"></script>
 </body>
 </html>

@@ -1,0 +1,420 @@
+import React, { useState } from "react";
+import { FaGolfBall, FaWind, FaRuler, FaTools, FaTemperatureHigh, FaTimes } from "react-icons/fa";
+import { IoMdSpeedometer } from "react-icons/io";
+import { WiHumidity, WiBarometer } from "react-icons/wi";
+
+const GolfApp = () => {
+  const [activeTab, setActiveTab] = useState("clubs");
+  const [clubs, setClubs] = useState([
+    { id: 1, name: "Driver", distance: 260 },
+    { id: 2, name: "3-Wood", distance: 230 },
+    { id: 3, name: "5-Wood", distance: 210 },
+    { id: 4, name: "4-Iron", distance: 190 },
+    { id: 5, name: "5-Iron", distance: 180 },
+    { id: 6, name: "6-Iron", distance: 170 },
+    { id: 7, name: "7-Iron", distance: 160 },
+    { id: 8, name: "8-Iron", distance: 150 },
+    { id: 9, name: "9-Iron", distance: 140 },
+    { id: 10, name: "PW", distance: 130 },
+    { id: 11, name: "GW", distance: 120 },
+    { id: 12, name: "SW", distance: 110 },
+    { id: 13, name: "LW", distance: 90 }
+  ]);
+  const [newClub, setNewClub] = useState({ name: "", distance: "" });
+  const [showWeather, setShowWeather] = useState(false);
+  const [windData, setWindData] = useState({ speed: 0, direction: 0 });
+  const [targetDistance, setTargetDistance] = useState("");
+
+  const weatherData = {
+    temperature: "72°F",
+    humidity: "65%",
+    altitude: "500ft",
+    pressure: "1013 hPa",
+    windSpeed: "10 mph",
+    windDirection: "NE"
+  };
+
+  const handleAddClub = (e) => {
+    e.preventDefault();
+    if (newClub.name && newClub.distance) {
+      setClubs([...clubs, { id: clubs.length + 1, ...newClub }]);
+      setNewClub({ name: "", distance: "" });
+    }
+  };
+
+  const handleRemoveClub = (id) => {
+    setClubs(clubs.filter(club => club.id !== id));
+  };
+
+  const calculateAdjustedDistance = (distance) => {
+    const windEffect = (windData.speed * Math.cos(windData.direction * Math.PI / 180));
+    return distance + (windEffect * 2);
+  };
+
+  return (
+    <div className="min-h-screen bg-cover bg-center bg-no-repeat relative" 
+         style={{
+           backgroundImage: "url('https://images.unsplash.com/photo-1587174486073-ae5e5cff23aa?ixlib=rb-4.0.3')"
+         }}>
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/80"></div>
+      <div className="relative min-h-screen p-4">
+        <div className="max-w-4xl mx-auto bg-gray-900/95 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden border border-gray-700/20">
+          <div className="flex justify-between items-center bg-gradient-to-r from-green-800 to-green-900 p-8">
+            <h1 className="text-4xl font-bold text-white flex items-center gap-4">
+              <div className="w-12 h-12 bg-gray-800 rounded-full flex items-center justify-center">
+                <FaGolfBall className="text-green-400 text-2xl" />
+              </div>
+              Golf Yardage Pro
+            </h1>
+            <button
+              onClick={() => setShowWeather(!showWeather)}
+              className="bg-gray-800/50 backdrop-blur-sm text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-700/50 transition-all duration-300 border border-gray-600/30"
+            >
+              Weather Info
+            </button>
+          </div>
+
+          {showWeather && (
+            <div className="p-8 bg-gradient-to-r from-gray-900 to-gray-800 border-b border-gray-700">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
+                <div className="flex items-center gap-4 text-lg bg-gray-800/80 p-4 rounded-xl shadow-sm text-gray-200">
+                  <FaTemperatureHigh className="text-green-400 text-2xl" />
+                  <span>Temperature: {weatherData.temperature}</span>
+                </div>
+                <div className="flex items-center gap-4 text-lg bg-gray-800/80 p-4 rounded-xl shadow-sm text-gray-200">
+                  <WiHumidity className="text-green-400 text-2xl" />
+                  <span>Humidity: {weatherData.humidity}</span>
+                </div>
+                <div className="flex items-center gap-4 text-lg bg-gray-800/80 p-4 rounded-xl shadow-sm text-gray-200">
+                  <IoMdSpeedometer className="text-green-400 text-2xl" />
+                  <span>Altitude: {weatherData.altitude}</span>
+                </div>
+                <div className="flex items-center gap-4 text-lg bg-gray-800/80 p-4 rounded-xl shadow-sm text-gray-200">
+                  <WiBarometer className="text-green-400 text-2xl" />
+                  <span>Pressure: {weatherData.pressure}</span>
+                </div>
+                <div className="flex items-center gap-4 text-lg bg-gray-800/80 p-4 rounded-xl shadow-sm text-gray-200">
+                  <FaWind className="text-green-400 text-2xl" />
+                  <span>Wind: {weatherData.windSpeed} {weatherData.windDirection}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="p-8">
+            {activeTab === "clubs" && (
+              <div className="space-y-8">
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h3 className="text-2xl font-semibold mb-6 text-gray-200">Club List</h3>
+                    <div className="space-y-3">
+                      {clubs.map((club) => (
+                        <div key={club.id} className="flex justify-between items-center p-4 bg-gray-700 rounded-xl hover:shadow-md transition-all duration-300">
+                          <span className="font-medium text-gray-200">{club.name}</span>
+                          <span className="text-green-400 font-semibold">{club.distance} yards</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <h3 className="text-2xl font-semibold mb-6 text-gray-200">Distance Reference</h3>
+                    <div className="space-y-3">
+                      {clubs.map((club) => (
+                        <div key={club.id} className="p-4 bg-gray-700 rounded-xl hover:shadow-md transition-all duration-300">
+                          <span className="text-green-400 font-semibold">{club.distance} yards</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "distance" && (
+              <div className="space-y-8">
+                <div className="bg-gray-800 p-6 rounded-2xl shadow-sm">
+                  <h3 className="text-2xl font-semibold mb-6 text-gray-200">Adjusted Distances</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {clubs.map((club) => (
+                      <div key={club.id} className="flex justify-between items-center p-4 bg-gray-700 rounded-xl hover:shadow-md transition-all duration-300">
+                        <span className="font-medium text-gray-200">{club.name}</span>
+                        <span className="text-green-400 font-semibold">{calculateAdjustedDistance(club.distance).toFixed(1)} yards</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "wind" && (
+              <div className="space-y-8">
+                <div className="grid grid-cols-2 gap-8">
+                  <div className="bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <label className="block mb-4 text-lg font-medium text-gray-200">Wind Speed (mph)</label>
+                    <input
+                      type="number"
+                      value={windData.speed}
+                      onChange={(e) => setWindData({ ...windData, speed: e.target.value })}
+                      className="w-full p-4 border bg-gray-700 text-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300"
+                    />
+                  </div>
+                  <div className="bg-gray-800 p-6 rounded-2xl shadow-sm">
+                    <label className="block mb-4 text-lg font-medium text-gray-200">Wind Direction (degrees)</label>
+                    <input
+                      type="number"
+                      value={windData.direction}
+                      onChange={(e) => setWindData({ ...windData, direction: e.target.value })}
+                      className="w-full p-4 border bg-gray-700 text-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-300"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-lg border-t border-gray-700 shadow-lg">
+            <div className="max-w-4xl mx-auto flex justify-around p-4">
+              {["clubs", "distance", "wind"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-lg transition-all duration-300 ${activeTab === tab ? "bg-green-600 text-white" : "text-gray-400 hover:bg-gray-800"}`}
+                >
+                  {tab === "clubs" && <span className="flex items-center gap-2"><FaTools /> Clubs</span>}
+                  {tab === "distance" && <span className="flex items-center gap-2"><FaRuler /> Distance</span>}
+                  {tab === "wind" && <span className="flex items-center gap-2"><FaWind /> Wind</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GolfApp;import React, { useState } from "react";
+import { FaGolfBall, FaWind, FaRuler, FaTools, FaTemperatureHigh } from "react-icons/fa";
+import { IoMdSpeedometer } from "react-icons/io";
+import { WiHumidity, WiBarometer } from "react-icons/wi";
+
+const GolfApp = () => {
+  const [activeTab, setActiveTab] = useState("clubs");
+  const [clubs, setClubs] = useState([
+    { id: 1, name: "Driver", distance: 260 },
+    { id: 2, name: "3-Wood", distance: 230 },
+    { id: 3, name: "5-Wood", distance: 210 },
+    { id: 4, name: "4-Iron", distance: 190 },
+    { id: 5, name: "5-Iron", distance: 180 },
+    { id: 6, name: "6-Iron", distance: 170 },
+    { id: 7, name: "7-Iron", distance: 160 },
+    { id: 8, name: "8-Iron", distance: 150 },
+    { id: 9, name: "9-Iron", distance: 140 },
+    { id: 10, name: "PW", distance: 130 },
+    { id: 11, name: "GW", distance: 120 },
+    { id: 12, name: "SW", distance: 110 },
+    { id: 13, name: "LW", distance: 90 }
+  ]);
+  const [newClub, setNewClub] = useState({ name: "", distance: "" });
+  const [showWeather, setShowWeather] = useState(false);
+  const [windData, setWindData] = useState({ speed: 0, direction: 0 });
+  const [targetDistance, setTargetDistance] = useState("");
+
+  const weatherData = {
+    temperature: "72°F",
+    humidity: "65%",
+    altitude: "500ft",
+    pressure: "1013 hPa",
+    windSpeed: "10 mph",
+    windDirection: "NE"
+  };
+
+  const handleAddClub = (e) => {
+    e.preventDefault();
+    if (newClub.name && newClub.distance) {
+      setClubs([...clubs, { id: clubs.length + 1, ...newClub }]);
+      setNewClub({ name: "", distance: "" });
+    }
+  };
+
+  const handleRemoveClub = (id) => {
+    setClubs(clubs.filter(club => club.id !== id));
+  };
+
+  const calculateAdjustedDistance = (distance) => {
+    const windEffect = (windData.speed * Math.cos(windData.direction * Math.PI / 180));
+    return distance + (windEffect * 2);
+  };
+
+  return (
+    <div className="overlay">
+      <div className="container mx-auto p-4">
+        <div className="bg-blue-600 text-white text-center py-4 rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold">Golf Yardage Pro</h1>
+        </div>
+        <div className="flex justify-around bg-gray-900 text-white py-4 rounded-t-lg shadow-lg">
+          <a href="#home" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg active" data-tab="home"><i className="fas fa-home"></i> Home</a>
+          <a href="#your-clubs" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="your-clubs"><i className="fas fa-golf-club"></i> Your Clubs</a>
+          <a href="#distance-calc" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="distance-calc"><i className="fas fa-ruler"></i> Distance Calc</a>
+          <a href="#wind-adjuster" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="wind-adjuster"><i className="fas fa-wind"></i> Wind Adjuster</a>
+        </div>
+        <div id="home" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg active">
+          <h2 className="text-xl font-bold mb-4">Welcome to Golf Yardage Pro</h2>
+          <p>Select a tab to get started with your golf yardage calculations.</p>
+        </div>
+        <div id="your-clubs" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Your Clubs</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-bold">Club</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{club.name}</p>
+              ))}
+            </div>
+            <div>
+              <h3 className="font-bold">Distance (yards)</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{club.distance}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div id="distance-calc" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Distance Calc</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-bold">Club</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{club.name}</p>
+              ))}
+            </div>
+            <div>
+              <h3 className="font-bold">Adjusted Distance (yards)</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{calculateAdjustedDistance(club.distance).toFixed(1)}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div id="wind-adjuster" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Wind Adjuster</h2>
+          <p>Wind adjustment functionality coming soon!</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GolfApp;import React, { useState } from "react";
+import { FaGolfBall, FaWind, FaRuler, FaTools, FaTemperatureHigh } from "react-icons/fa";
+import { IoMdSpeedometer } from "react-icons/io";
+import { WiHumidity, WiBarometer } from "react-icons/wi";
+
+const GolfApp = () => {
+  const [activeTab, setActiveTab] = useState("clubs");
+  const [clubs, setClubs] = useState([
+    { id: 1, name: "Driver", distance: 260 },
+    { id: 2, name: "3-Wood", distance: 230 },
+    { id: 3, name: "5-Wood", distance: 210 },
+    { id: 4, name: "4-Iron", distance: 190 },
+    { id: 5, name: "5-Iron", distance: 180 },
+    { id: 6, name: "6-Iron", distance: 170 },
+    { id: 7, name: "7-Iron", distance: 160 },
+    { id: 8, name: "8-Iron", distance: 150 },
+    { id: 9, name: "9-Iron", distance: 140 },
+    { id: 10, name: "PW", distance: 130 },
+    { id: 11, name: "GW", distance: 120 },
+    { id: 12, name: "SW", distance: 110 },
+    { id: 13, name: "LW", distance: 90 }
+  ]);
+  const [newClub, setNewClub] = useState({ name: "", distance: "" });
+  const [showWeather, setShowWeather] = useState(false);
+  const [windData, setWindData] = useState({ speed: 0, direction: 0 });
+  const [targetDistance, setTargetDistance] = useState("");
+
+  const weatherData = {
+    temperature: "72°F",
+    humidity: "65%",
+    altitude: "500ft",
+    pressure: "1013 hPa",
+    windSpeed: "10 mph",
+    windDirection: "NE"
+  };
+
+  const handleAddClub = (e) => {
+    e.preventDefault();
+    if (newClub.name && newClub.distance) {
+      setClubs([...clubs, { id: clubs.length + 1, ...newClub }]);
+      setNewClub({ name: "", distance: "" });
+    }
+  };
+
+  const handleRemoveClub = (id) => {
+    setClubs(clubs.filter(club => club.id !== id));
+  };
+
+  const calculateAdjustedDistance = (distance) => {
+    const windEffect = (windData.speed * Math.cos(windData.direction * Math.PI / 180));
+    return distance + (windEffect * 2);
+  };
+
+  return (
+    <div className="overlay">
+      <div className="container mx-auto p-4">
+        <div className="bg-blue-600 text-white text-center py-4 rounded-lg shadow-lg">
+          <h1 className="text-2xl font-bold">Golf Yardage Pro</h1>
+        </div>
+        <div className="flex justify-around bg-gray-900 text-white py-4 rounded-t-lg shadow-lg">
+          <a href="#home" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg active" data-tab="home"><i className="fas fa-home"></i> Home</a>
+          <a href="#your-clubs" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="your-clubs"><i className="fas fa-golf-club"></i> Your Clubs</a>
+          <a href="#distance-calc" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="distance-calc"><i className="fas fa-ruler"></i> Distance Calc</a>
+          <a href="#wind-adjuster" className="tab-link py-2 px-4 hover:bg-gray-700 rounded-lg" data-tab="wind-adjuster"><i className="fas fa-wind"></i> Wind Adjuster</a>
+        </div>
+        <div id="home" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg active">
+          <h2 className="text-xl font-bold mb-4">Welcome to Golf Yardage Pro</h2>
+          <p>Select a tab to get started with your golf yardage calculations.</p>
+        </div>
+        <div id="your-clubs" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Your Clubs</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-bold">Club</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{club.name}</p>
+              ))}
+            </div>
+            <div>
+              <h3 className="font-bold">Distance (yards)</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{club.distance}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div id="distance-calc" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Distance Calc</h2>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-bold">Club</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{club.name}</p>
+              ))}
+            </div>
+            <div>
+              <h3 className="font-bold">Adjusted Distance (yards)</h3>
+              {clubs.map((club) => (
+                <p key={club.id}>{calculateAdjustedDistance(club.distance).toFixed(1)}</p>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div id="wind-adjuster" className="tab-content bg-gray-800 text-white p-4 mt-4 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Wind Adjuster</h2>
+          <p>Wind adjustment functionality coming soon!</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GolfApp;
