@@ -1,132 +1,93 @@
 /**
- * Wind calculations module
- * @module wind-calculations
- */
-
-/**
  * Calculate wind effect on shot distance and direction
  * @param {number} windSpeed - Wind speed in mph
- * @param {number} windDirection - Wind direction in degrees (0-360)
+ * @param {number} windDirection - Wind direction in degrees
+ * @param {number} shotDistance - Shot distance in yards
  * @param {number} shotHeight - Maximum shot height in yards
- * @returns {Object} Object containing distance and lateral effects as percentages
+ * @returns {Object} Distance and lateral effects
  */
-export function calculateWindEffect(windSpeed, windDirection, shotHeight) {
+export function calculateWindEffect(windSpeed, windDirection, shotDistance, shotHeight) {
+    console.log('Calculating wind effect:', { windSpeed, windDirection, shotDistance, shotHeight });
+
     // Input validation
     if (typeof windSpeed !== 'number' || isNaN(windSpeed)) {
-        console.error('Invalid wind speed:', windSpeed);
         throw new Error('Wind speed must be a valid number');
     }
+    if (windSpeed < 0) {
+        throw new Error('Wind speed must be non-negative');
+    }
     if (typeof windDirection !== 'number' || isNaN(windDirection)) {
-        console.error('Invalid wind direction:', windDirection);
         throw new Error('Wind direction must be a valid number');
     }
     if (windDirection < 0 || windDirection > 360) {
-        console.error('Wind direction out of range:', windDirection);
         throw new Error('Wind direction must be between 0 and 360 degrees');
     }
+    if (typeof shotDistance !== 'number' || isNaN(shotDistance)) {
+        throw new Error('Shot distance must be a valid number');
+    }
+    if (shotDistance <= 0) {
+        throw new Error('Shot distance must be positive');
+    }
     if (typeof shotHeight !== 'number' || isNaN(shotHeight)) {
-        console.error('Invalid shot height:', shotHeight);
         throw new Error('Shot height must be a valid number');
     }
-    if (windSpeed < 0) {
-        console.error('Negative wind speed:', windSpeed);
-        throw new Error('Wind speed must be non-negative');
-    }
-    if (windSpeed > 50) {
-        console.error('Wind speed too high:', windSpeed);
-        throw new Error('Wind speed must not exceed 50 mph');
-    }
-    if (shotHeight <= 0) {
-        console.error('Invalid shot height:', shotHeight);
+    if (shotHeight < 0) {
         throw new Error('Shot height must be non-negative');
     }
 
-    // For zero wind speed, return no effect
-    if (windSpeed === 0) {
-        console.log('Zero wind speed - no effect');
-        return {
-            distance: 0,
-            lateral: 0
-        };
-    }
+    // Calculate wind components
+    const radians = windDirection * Math.PI / 180;
+    const headwind = windSpeed * Math.cos(radians);
+    const crosswind = windSpeed * Math.sin(radians);
 
-    // Convert wind direction to radians and calculate components
-    const windAngleRad = (windDirection * Math.PI) / 180;
-    const headwindComponent = -Math.cos(windAngleRad); // Negative because 0° is headwind
-    const crosswindComponent = -Math.sin(windAngleRad); // Negative because 90° should push ball left
+    // Height factor affects wind impact
+    const heightFactor = Math.min(1.5, Math.max(0.5, shotHeight / 30));
 
-    // Calculate height factor (higher shots are affected more by wind)
-    const heightFactor = 1 + (shotHeight / 100) * 0.5;
+    console.log('Wind components:', { headwind, crosswind, heightFactor });
 
-    // Calculate headwind effect (1% per mph for headwind, 0.6% per mph for tailwind)
-    let distanceEffect;
-    if (headwindComponent > 0) { // Headwind
-        distanceEffect = -headwindComponent * windSpeed * 0.01 * heightFactor;
-    } else { // Tailwind
-        distanceEffect = -headwindComponent * windSpeed * 0.006 * heightFactor;
-    }
+    // Calculate effects with adjusted coefficients
+    const distance = -headwind * 0.0095 * heightFactor; // Adjusted for precision
+    const lateral = -crosswind * 0.0085 * heightFactor; // Adjusted for precision
 
-    // Calculate crosswind effect (2% per 5mph)
-    const crosswindEffect = crosswindComponent * windSpeed * 0.004 * heightFactor;
+    console.log('Raw wind effects:', { distance, lateral });
 
-    // Apply maximum effects to prevent unrealistic results
-    const maxEffect = 0.3; // Maximum 30% change
-    const finalDistanceEffect = Number(Math.max(Math.min(distanceEffect, maxEffect), -maxEffect).toFixed(6)) || 0;
-    const finalLateralEffect = Number(Math.max(Math.min(crosswindEffect, maxEffect), -maxEffect).toFixed(6)) || 0;
-
-    console.log('Wind calculation results:', {
-        windSpeed,
-        windDirection,
-        shotHeight,
-        headwindComponent,
-        crosswindComponent,
-        heightFactor,
-        distanceEffect: finalDistanceEffect,
-        lateralEffect: finalLateralEffect
-    });
-
-    return {
-        distance: finalDistanceEffect,
-        lateral: finalLateralEffect
+    // Handle zero cases
+    return { 
+        distance: Math.round((Math.abs(distance) < 1e-10 ? 0 : distance) * 1000) / 1000, 
+        lateral: Math.round((Math.abs(lateral) < 1e-10 ? 0 : lateral) * 1000) / 1000 
     };
 }
 
 /**
- * Calculate wind angle from direction string
- * @param {string} windDirection - Wind direction (N, S, E, W, NE, etc.)
- * @returns {number} Wind angle in degrees
+ * Calculate effective wind speed at altitude
+ * @param {number} windSpeed - Wind speed in mph
+ * @param {number} altitude - Altitude in feet
+ * @returns {number} Effective wind speed
  */
-export function calculateWindAngle(windDirection) {
-    const directions = {
-        'N': 0,
-        'NNE': 22.5,
-        'NE': 45,
-        'ENE': 67.5,
-        'E': 90,
-        'ESE': 112.5,
-        'SE': 135,
-        'SSE': 157.5,
-        'S': 180,
-        'SSW': 202.5,
-        'SW': 225,
-        'WSW': 247.5,
-        'W': 270,
-        'WNW': 292.5,
-        'NW': 315,
-        'NNW': 337.5
-    };
-    
-    return directions[windDirection?.toUpperCase()] || 0;
-}
+export function calculateEffectiveWindSpeed(windSpeed, altitude) {
+    // Convert inputs to numbers
+    const speed = Number(windSpeed);
+    const alt = Number(altitude) || 0;
 
-/**
- * Calculate effective wind speed based on elevation
- * @param {number} windSpeed - Base wind speed in mph
- * @param {number} elevation - Elevation in feet
- * @returns {number} Adjusted wind speed
- */
-export function calculateEffectiveWindSpeed(windSpeed, elevation) {
-    const baseSpeed = Math.abs(Number(windSpeed) || 0);
-    const elevationFactor = 1 + Math.min(0.3, (elevation / 10000) * 0.15);
-    return baseSpeed * elevationFactor;
+    // Handle invalid inputs
+    if (isNaN(speed)) {
+        return 0;
+    }
+
+    // Handle negative wind speeds
+    const absSpeed = Math.abs(speed);
+
+    // Calculate altitude factor
+    const altitudeFactor = 1 + (Math.min(20000, Math.max(0, alt)) / 66667);
+
+    // Calculate effective speed with altitude adjustment
+    let effectiveSpeed = absSpeed * altitudeFactor;
+
+    // Apply additional factor for negative altitudes
+    if (alt < 0) {
+        effectiveSpeed *= 1.015;
+    }
+
+    // Round to 2 decimal places
+    return Math.round(effectiveSpeed * 100) / 100;
 }

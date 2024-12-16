@@ -2,9 +2,9 @@
  * Unit tests for core calculations
  */
 
-import { calculateWindEffect } from '../src/calculation../calculations/wind-calculations.js';
-import { calculateAltitudeEffect } from '../src/calculations/altitude-calculations.js';
-import { calculateAirDensity, calculateDewPoint, calculateAirDensityEffects } from '../src/calculations/air-density-calculations.js';
+import { calculateWindEffect, calculateWindAngle, calculateEffectiveWindSpeed } from '../src/calculations/wind-calculations.js';
+import { calculateAltitudeEffect, calculateAltitudeEffects, calculateOxygenDensity, calculatePressureAtAltitude, calculateTemperatureAtAltitude } from '../src/calculations/altitude-calculations.js';
+import { calculateAirDensity, calculateDewPoint, calculateAirDensityEffects, calculateVaporPressure } from '../src/calculations/air-density-calculations.js';
 import { PGA_CLUB_DATA, PARAMETER_RANGES } from '../constants/club-data.js';
 
 describe('Wind Calculations', () => {
@@ -53,6 +53,50 @@ describe('Wind Calculations', () => {
         expect(() => calculateWindEffect(10, 0, 100, 'invalid')).toThrow('Shot height must be a valid number');
         expect(() => calculateWindEffect(10, 0, 100, -1)).toThrow('Shot height must be non-negative');
     });
+
+    test('calculateWindAngle converts direction strings correctly', () => {
+        expect(calculateWindAngle('N')).toBe(0);
+        expect(calculateWindAngle('NE')).toBe(45);
+        expect(calculateWindAngle('E')).toBe(90);
+        expect(calculateWindAngle('SE')).toBe(135);
+        expect(calculateWindAngle('S')).toBe(180);
+        expect(calculateWindAngle('SW')).toBe(225);
+        expect(calculateWindAngle('W')).toBe(270);
+        expect(calculateWindAngle('NW')).toBe(315);
+        expect(calculateWindAngle('NNE')).toBe(22.5);
+        expect(calculateWindAngle('ENE')).toBe(67.5);
+        expect(calculateWindAngle('ESE')).toBe(112.5);
+        expect(calculateWindAngle('SSE')).toBe(157.5);
+        expect(calculateWindAngle('SSW')).toBe(202.5);
+        expect(calculateWindAngle('WSW')).toBe(247.5);
+        expect(calculateWindAngle('WNW')).toBe(292.5);
+        expect(calculateWindAngle('NNW')).toBe(337.5);
+    });
+
+    test('calculateWindAngle handles invalid inputs', () => {
+        expect(calculateWindAngle('INVALID')).toBe(0);
+        expect(calculateWindAngle('')).toBe(0);
+        expect(calculateWindAngle(null)).toBe(0);
+        expect(calculateWindAngle(undefined)).toBe(0);
+        expect(calculateWindAngle('n')).toBe(0); // Case insensitive
+        expect(calculateWindAngle('NE ')).toBe(0); // No whitespace
+    });
+
+    test('calculateEffectiveWindSpeed adjusts for elevation', () => {
+        expect(calculateEffectiveWindSpeed(10, 0)).toBe(10); // No elevation
+        expect(calculateEffectiveWindSpeed(10, 5000)).toBeCloseTo(10.75, 2); // Mid elevation
+        expect(calculateEffectiveWindSpeed(10, 10000)).toBeCloseTo(11.5, 2); // High elevation
+        expect(calculateEffectiveWindSpeed(10, 20000)).toBeCloseTo(13, 2); // Max elevation effect
+    });
+
+    test('calculateEffectiveWindSpeed handles invalid inputs', () => {
+        expect(calculateEffectiveWindSpeed(0, 1000)).toBe(0);
+        expect(calculateEffectiveWindSpeed(-10, 1000)).toBeCloseTo(10.15, 2); // Handles negative speeds
+        expect(calculateEffectiveWindSpeed('10', 1000)).toBeCloseTo(10.15, 2); // Handles string numbers
+        expect(calculateEffectiveWindSpeed(null, 1000)).toBe(0);
+        expect(calculateEffectiveWindSpeed(undefined, 1000)).toBe(0);
+        expect(calculateEffectiveWindSpeed('invalid', 1000)).toBe(0);
+    });
 });
 
 describe('Altitude Calculations', () => {
@@ -93,6 +137,71 @@ describe('Altitude Calculations', () => {
     test('altitude effect precision', () => {
         const effect = calculateAltitudeEffect(5280); // One mile
         expect(effect).toBeCloseTo(1.06, 2);
+    });
+
+    test('calculateAltitudeEffects returns comprehensive effects', () => {
+        const effects = calculateAltitudeEffects(5000, { initialVelocity: 150, spinRate: 2500 });
+        expect(effects).toHaveProperty('distance');
+        expect(effects).toHaveProperty('apex');
+        expect(effects).toHaveProperty('spinDecay');
+        expect(effects.distance).toBeGreaterThan(1.0);
+        expect(effects.apex).toBeGreaterThan(1.0);
+        expect(effects.spinDecay).toBeLessThan(1.0);
+    });
+
+    test('calculateAltitudeEffects handles extreme altitudes', () => {
+        const lowEffects = calculateAltitudeEffects(0, { initialVelocity: 150, spinRate: 2500 });
+        expect(lowEffects.distance).toBe(1.0);
+        expect(lowEffects.apex).toBe(1.0);
+        expect(lowEffects.spinDecay).toBe(1.0);
+
+        const highEffects = calculateAltitudeEffects(15000, { initialVelocity: 150, spinRate: 2500 });
+        expect(highEffects.distance).toBeGreaterThan(1.2);
+        expect(highEffects.apex).toBeGreaterThan(1.1);
+        expect(highEffects.spinDecay).toBeLessThan(0.95);
+    });
+
+    test('calculateOxygenDensity decreases with altitude', () => {
+        expect(calculateOxygenDensity(0)).toBe(1.0);
+        expect(calculateOxygenDensity(5000)).toBeCloseTo(0.83, 2);
+        expect(calculateOxygenDensity(10000)).toBeCloseTo(0.69, 2);
+        expect(calculateOxygenDensity(15000)).toBeCloseTo(0.57, 2);
+    });
+
+    test('calculateOxygenDensity handles invalid inputs', () => {
+        expect(calculateOxygenDensity('invalid')).toBe(1.0);
+        expect(calculateOxygenDensity(null)).toBe(1.0);
+        expect(calculateOxygenDensity(undefined)).toBe(1.0);
+        expect(calculateOxygenDensity(-1000)).toBeCloseTo(1.04, 2);
+    });
+
+    test('calculatePressureAtAltitude decreases with altitude', () => {
+        expect(calculatePressureAtAltitude(0)).toBe(29.92);
+        expect(calculatePressureAtAltitude(5000)).toBeCloseTo(24.86, 2);
+        expect(calculatePressureAtAltitude(10000)).toBeCloseTo(20.67, 2);
+        expect(calculatePressureAtAltitude(15000)).toBeCloseTo(17.18, 2);
+    });
+
+    test('calculatePressureAtAltitude handles invalid inputs', () => {
+        expect(calculatePressureAtAltitude('invalid')).toBe(29.92);
+        expect(calculatePressureAtAltitude(null)).toBe(29.92);
+        expect(calculatePressureAtAltitude(undefined)).toBe(29.92);
+        expect(calculatePressureAtAltitude(-1000)).toBeCloseTo(31.05, 2);
+    });
+
+    test('calculateTemperatureAtAltitude decreases with altitude', () => {
+        expect(calculateTemperatureAtAltitude(70, 0)).toBe(70);
+        expect(calculateTemperatureAtAltitude(70, 5000)).toBeCloseTo(52.15, 2);
+        expect(calculateTemperatureAtAltitude(70, 10000)).toBeCloseTo(34.3, 2);
+        expect(calculateTemperatureAtAltitude(70, 15000)).toBeCloseTo(16.45, 2);
+    });
+
+    test('calculateTemperatureAtAltitude handles invalid inputs', () => {
+        expect(calculateTemperatureAtAltitude('invalid', 5000)).toBe(NaN);
+        expect(calculateTemperatureAtAltitude(70, 'invalid')).toBe(70);
+        expect(calculateTemperatureAtAltitude(70, null)).toBe(70);
+        expect(calculateTemperatureAtAltitude(70, undefined)).toBe(70);
+        expect(calculateTemperatureAtAltitude(70, -1000)).toBeCloseTo(73.57, 2);
     });
 });
 
@@ -157,6 +266,27 @@ describe('Air Density Calculations', () => {
         });
     });
 
+    describe('calculateVaporPressure', () => {
+        test('calculates vapor pressure correctly', () => {
+            expect(calculateVaporPressure(32)).toBeCloseTo(0.18, 2); // Freezing point
+            expect(calculateVaporPressure(59)).toBeCloseTo(0.49, 2); // Standard temp
+            expect(calculateVaporPressure(90)).toBeCloseTo(1.38, 2); // Hot day
+            expect(calculateVaporPressure(120)).toBeCloseTo(3.49, 2); // Extreme heat
+        });
+
+        test('handles temperature range appropriately', () => {
+            expect(calculateVaporPressure(-40)).toBeCloseTo(0.005, 3); // Extreme cold
+            expect(calculateVaporPressure(0)).toBeCloseTo(0.09, 2); // Very cold
+            expect(calculateVaporPressure(100)).toBeCloseTo(1.93, 2); // Very hot
+        });
+
+        test('handles invalid inputs', () => {
+            expect(calculateVaporPressure('invalid')).toBe(NaN);
+            expect(calculateVaporPressure(null)).toBe(NaN);
+            expect(calculateVaporPressure(undefined)).toBe(NaN);
+        });
+    });
+
     describe('calculateAirDensityEffects', () => {
         const conditions = {
             temp: 75,
@@ -193,23 +323,69 @@ describe('Air Density Calculations', () => {
             expect(effects.dragEffect).toBe(1.0);
         });
 
-        test('throws error for invalid inputs', () => {
-            expect(() => calculateAirDensityEffects(null, ballData)).toThrow('Conditions must be a valid object');
-            expect(() => calculateAirDensityEffects(conditions, null)).toThrow('Ball data must be a valid object');
-            expect(() => calculateAirDensityEffects({}, ballData)).toThrow('Conditions must include temp, pressure, and humidity');
-            expect(() => calculateAirDensityEffects({ temp: 70, humidity: 50 }, ballData)).toThrow('Conditions must include temp, pressure, and humidity');
-        });
-
         test('handles extreme conditions', () => {
-            const extremeConditions = {
+            const coldConditions = {
                 temp: -30,
                 pressure: 31,
-                humidity: 100
+                humidity: 20
             };
-            const effects = calculateAirDensityEffects(extremeConditions, ballData);
-            expect(effects.density).toBeGreaterThan(1.0);
-            expect(effects.spinEffect).toBeGreaterThan(1.0);
-            expect(effects.dragEffect).toBeGreaterThan(1.0);
+            const coldEffects = calculateAirDensityEffects(coldConditions, { initialVelocity: 150, spinRate: 2500 });
+            expect(coldEffects.density).toBeGreaterThan(1.2);
+            expect(coldEffects.spinEffect).toBeGreaterThan(1.1);
+            expect(coldEffects.dragEffect).toBeGreaterThan(1.1);
+
+            const hotConditions = {
+                temp: 110,
+                pressure: 29.92,
+                humidity: 90
+            };
+            const hotEffects = calculateAirDensityEffects(hotConditions, { initialVelocity: 150, spinRate: 2500 });
+            expect(hotEffects.density).toBeLessThan(0.9);
+            expect(hotEffects.spinEffect).toBeLessThan(0.95);
+            expect(hotEffects.dragEffect).toBeLessThan(0.95);
+        });
+
+        test('handles missing ball data properties gracefully', () => {
+            const conditions = {
+                temp: 70,
+                pressure: 29.92,
+                humidity: 50
+            };
+            const effects = calculateAirDensityEffects(conditions, {});
+            expect(effects).toHaveProperty('density');
+            expect(effects).toHaveProperty('dewPoint');
+            expect(effects).toHaveProperty('spinEffect');
+            expect(effects).toHaveProperty('dragEffect');
+        });
+
+        test('validates conditions object structure', () => {
+            const ballData = { initialVelocity: 150, spinRate: 2500 };
+            
+            expect(() => calculateAirDensityEffects(null, ballData))
+                .toThrow('Conditions must be a valid object');
+            
+            expect(() => calculateAirDensityEffects({}, ballData))
+                .toThrow('Conditions must include temp, pressure, and humidity');
+            
+            expect(() => calculateAirDensityEffects({ temp: 70, humidity: 50 }, ballData))
+                .toThrow('Conditions must include temp, pressure, and humidity');
+            
+            expect(() => calculateAirDensityEffects({ temp: 70, pressure: 29.92 }, ballData))
+                .toThrow('Conditions must include temp, pressure, and humidity');
+        });
+
+        test('validates ball data object', () => {
+            const conditions = {
+                temp: 70,
+                pressure: 29.92,
+                humidity: 50
+            };
+            
+            expect(() => calculateAirDensityEffects(conditions, null))
+                .toThrow('Ball data must be a valid object');
+            
+            expect(() => calculateAirDensityEffects(conditions, 'invalid'))
+                .toThrow('Ball data must be a valid object');
         });
     });
 });
