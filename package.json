@@ -19,6 +19,7 @@
     "axios": "^1.7.9",
     "chart.js": "^4.4.1",
     "dotenv": "^16.4.7",
+    "lodash-es": "^4.17.21",
     "luxon": "^3.4.4",
     "node-fetch": "^3.3.2",
     "postcss": "^8.4.32",
