@@ -4,47 +4,42 @@ dotenv.config();
 
 // Export configuration
 export const config = {
-    WEATHERAPI_KEY: process.env.WEATHERAPI_KEY || '',
-    API_BASE_URL: 'https://api.weatherapi.com/v1',
+    TOMORROW_IO_API_KEY: process.env.TOMORROW_IO_API_KEY || 'jG9onLuVeiR4NWlVIO85EWWLCtQ2Uzqv',
+    API_BASE_URL: 'https://api.tomorrow.io/v4',
     ENDPOINTS: {
-        CURRENT: 'current.json',
-        FORECAST: 'forecast.json',
-        MARINE: 'marine.json'
+        CURRENT: 'weather/realtime',
+        FORECAST: 'weather/forecast',
+        MARINE: 'weather/marine'
     },
     FIELDS: {
         current: [
-            'temp_f',
+            'temperature',
             'humidity',
-            'wind_mph',
-            'wind_degree',
-            'wind_dir',
-            'pressure_mb',
-            'pressure_in',
-            'precip_in',
-            'cloud',
-            'feelslike_f',
-            'vis_miles',
-            'uv',
-            'gust_mph',
-            'windchill_f',
-            'heatindex_f',
-            'dewpoint_f'
+            'windSpeed',
+            'windDirection',
+            'pressureSeaLevel',
+            'precipitationProbability',
+            'cloudCover',
+            'visibility',
+            'uvIndex',
+            'windGust',
+            'dewPoint'
         ],
         forecast: [
-            'maxtemp_f',
-            'mintemp_f',
-            'avgtemp_f',
-            'maxwind_mph',
-            'totalprecip_in',
-            'avgvis_miles',
-            'avghumidity',
-            'daily_chance_of_rain',
-            'uv'
+            'temperature',
+            'temperatureMax',
+            'temperatureMin',
+            'windSpeed',
+            'precipitationProbability',
+            'visibility',
+            'humidity',
+            'cloudCover',
+            'uvIndex'
         ],
         marine: [
-            'sig_ht_mt',
-            'swell_dir',
-            'swell_period_secs'
+            'waveSignificantHeight',
+            'waveDirection',
+            'wavePeriod'
         ],
         astro: [
             'sunrise',
@@ -55,20 +50,20 @@ export const config = {
     // Reserved for future pro features
     FUTURE_PRO_FIELDS: {
         wind: [
-            'wind_speed_10m',
-            'wind_direction_10m',
-            'wind_speed_80m',
-            'wind_direction_80m',
-            'wind_gust',
-            'short_rad',
-            'diff_rad'
+            'windSpeed10m',
+            'windDirection10m',
+            'windSpeed80m',
+            'windDirection80m',
+            'windGust',
+            'solarRadiationShort',
+            'solarRadiationDiffuse'
         ]
     }
 };
 
 // Validate API key
-if (!config.WEATHERAPI_KEY) {
-    console.error('WeatherAPI.com API key is not set. Please add it to your .env file.');
+if (!config.TOMORROW_IO_API_KEY) {
+    console.error('Tomorrow.io API key is not set. Please add it to your .env file.');
 }
 
 export const ENV_CONSTANTS = {

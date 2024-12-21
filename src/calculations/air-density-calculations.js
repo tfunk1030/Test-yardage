@@ -1,31 +1,56 @@
 /**
- * Calculate air density based on temperature and pressure
- * @param {number} temperature - Temperature in Fahrenheit
- * @param {number} pressure - Pressure in inHg
- * @returns {number} Air density in kg/m^3
+ * Calculate air density based on temperature, pressure, and humidity
+ * @param {number} temperature - Temperature in °F
+ * @param {number} pressure - Barometric pressure in inHg
+ * @param {number} humidity - Relative humidity (0-100)
+ * @returns {number} Air density ratio compared to standard conditions
  */
-export function calculateAirDensity(temperature, pressure) {
+export function calculateAirDensity(temperature, pressure, humidity = 50) {
     if (typeof temperature !== 'number' || isNaN(temperature)) {
         throw new Error('Temperature must be a valid number');
     }
     if (typeof pressure !== 'number' || isNaN(pressure)) {
         throw new Error('Pressure must be a valid number');
     }
+    if (typeof humidity !== 'number' || isNaN(humidity) || humidity < 0 || humidity > 100) {
+        throw new Error('Humidity must be a valid percentage between 0 and 100');
+    }
 
-    // Convert temperature to Kelvin
-    const tempK = (temperature + 459.67) * 5 / 9;
-
-    // Calculate air density using the ideal gas law
-    const density = (pressure * 0.0338639) / (tempK * 0.287042);
+    // Convert temperature to Celsius
+    const tempC = (temperature - 32) * 5/9;
     
-    return Math.round(density * 1000) / 1000; // Round to 3 decimal places
+    // Calculate vapor pressure
+    const vaporPressure = calculateVaporPressure(tempC);
+    
+    // Calculate actual vapor pressure based on humidity
+    const actualVaporPressure = vaporPressure * (humidity / 100);
+    
+    // Convert pressure from inHg to kPa
+    const pressureKPa = pressure * 3.386389;
+    
+    // Calculate dry air pressure (total pressure - vapor pressure)
+    const dryAirPressure = pressureKPa - actualVaporPressure;
+    
+    // Calculate air density using the ideal gas law
+    const R = 287.05; // Gas constant for dry air in J/(kg·K)
+    const Rv = 461.495; // Gas constant for water vapor in J/(kg·K)
+    const T = tempC + 273.15; // Convert to Kelvin
+    
+    const dryAirDensity = dryAirPressure * 1000 / (R * T);
+    const vaporDensity = actualVaporPressure * 1000 / (Rv * T);
+    
+    const totalDensity = dryAirDensity + vaporDensity;
+    
+    // Calculate density ratio compared to standard conditions
+    const standardDensity = 1.225; // kg/m³ at sea level, 15°C
+    return totalDensity / standardDensity;
 }
 
 /**
- * Calculate dew point based on temperature and humidity
- * @param {number} temperature - Temperature in Fahrenheit
- * @param {number} humidity - Relative humidity in percentage
- * @returns {number} Dew point in Fahrenheit
+ * Calculate dew point temperature
+ * @param {number} temperature - Temperature in °F
+ * @param {number} humidity - Relative humidity (0-100)
+ * @returns {number} Dew point temperature in °F
  */
 export function calculateDewPoint(temperature, humidity) {
     if (typeof temperature !== 'number' || isNaN(temperature)) {
@@ -37,43 +62,64 @@ export function calculateDewPoint(temperature, humidity) {
 
     const a = 17.27;
     const b = 237.7;
-    const alpha = ((a * temperature) / (b + temperature)) + Math.log(humidity / 100);
-    const dewPoint = (b * alpha) / (a - alpha);
-
-    return Math.round(dewPoint * 100) / 100; // Round to 2 decimal places
+    
+    // Convert temperature to Celsius
+    const tempC = (temperature - 32) * 5/9;
+    
+    // Calculate gamma
+    const gamma = ((a * tempC) / (b + tempC)) + Math.log(humidity / 100.0);
+    
+    // Calculate dew point in Celsius
+    const dewPointC = (b * gamma) / (a - gamma);
+    
+    // Convert back to Fahrenheit
+    return (dewPointC * 9/5) + 32;
 }
 
 /**
- * Calculate vapor pressure based on temperature
- * @param {number} temperature - Temperature in Fahrenheit
- * @returns {number} Vapor pressure in inHg
+ * Calculate saturation vapor pressure
+ * @param {number} tempC - Temperature in Celsius
+ * @returns {number} Vapor pressure in kPa
  */
-export function calculateVaporPressure(temperature) {
-    if (typeof temperature !== 'number' || isNaN(temperature)) {
+export function calculateVaporPressure(tempC) {
+    if (typeof tempC !== 'number' || isNaN(tempC)) {
         throw new Error('Temperature must be a valid number');
     }
 
-    const vaporPressure = 0.61078 * Math.exp((17.27 * temperature) / (temperature + 237.3));
-    return Math.round(vaporPressure * 1000) / 1000; // Round to 3 decimal places
+    // Magnus formula for vapor pressure
+    return 0.61078 * Math.exp((17.27 * tempC) / (tempC + 237.3));
 }
 
 /**
- * Calculate air density effects based on temperature, pressure, humidity, and altitude
- * @param {number} temperature - Temperature in Fahrenheit
- * @param {number} pressure - Pressure in inHg
- * @param {number} humidity - Relative humidity in percentage
- * @param {number} altitude - Altitude in feet
- * @returns {Object} Air density effects
+ * Calculate all air density effects
+ * @param {Object} conditions - Environmental conditions
+ * @param {Object} ballData - Ball characteristics
+ * @returns {Object} Combined effects on ball flight
  */
-export function calculateAirDensityEffects(temperature, pressure, humidity, altitude) {
-    const airDensity = calculateAirDensity(temperature, pressure);
-    const dewPoint = calculateDewPoint(temperature, humidity);
-    const vaporPressure = calculateVaporPressure(temperature);
+export function calculateAirDensityEffects(conditions, ballData) {
+    // Validate inputs
+    if (!conditions || typeof conditions !== 'object') {
+        throw new Error('Conditions must be a valid object');
+    }
+    if (!ballData || typeof ballData !== 'object') {
+        throw new Error('Ball data must be a valid object');
+    }
+
+    const { temperature, pressure, humidity } = conditions;
+    const density = calculateAirDensity(temperature, pressure, humidity);
+    
+    // Calculate effects based on density ratio
+    const dragEffect = Math.pow(density, 0.5);
+    const liftEffect = Math.pow(density, 0.5);
+    
+    // Adjust ball characteristics
+    const { dragCoefficient = 0.3, liftCoefficient = 0.2 } = ballData;
     
     return {
-        airDensity,
-        dewPoint,
-        vaporPressure,
-        altitude
+        density,
+        dragEffect,
+        liftEffect,
+        adjustedDrag: dragCoefficient * dragEffect,
+        adjustedLift: liftCoefficient * liftEffect
     };
 }

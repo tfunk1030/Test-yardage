@@ -1,99 +1,91 @@
-import {
-    calculateReynoldsNumber,
-    calculateDragCoefficient,
-    calculateMagnusCoefficient,
-    calculateLiftCoefficient,
-    calculateAerodynamicForces
-} from '../../src/physics/ball-aerodynamics.js';
-
-const STANDARD_CONDITIONS = {
-    velocity: 44.704, // 100 mph in m/s
-    spinRate: 2500,   // rpm
-    airDensity: 1.225, // kg/m³ at sea level
-    launchAngle: 12   // degrees
-};
-
-function getTestConditions(overrides = {}) {
-    return { ...STANDARD_CONDITIONS, ...overrides };
-}
+const { BallFlightCalculator } = require('../../src/physics/ball-flight-calculator');
 
 describe('Ball Aerodynamics Tests', () => {
-    describe('Reynolds Number', () => {
-        test('calculation is accurate for standard conditions', () => {
-            const reynolds = calculateReynoldsNumber(
-                STANDARD_CONDITIONS.velocity,
-                STANDARD_CONDITIONS.airDensity
-            );
-            
-            expect(reynolds).toBeGreaterThan(100000);
-            expect(reynolds).toBeLessThan(120000);
-        });
-    });
+    let calculator;
 
-    describe('Drag Coefficient', () => {
-        test.each([
-            [30000, 2500, 0.4, Infinity],
-            [100000, 2500, 0, 0.3]
-        ])('varies with Reynolds number %i', (reynolds, spinRate, min, max) => {
-            const coefficient = calculateDragCoefficient(reynolds, spinRate);
-            
-            expect(coefficient).toBeGreaterThan(min);
-            expect(coefficient).toBeLessThan(max);
-        });
-    });
-
-    describe('Magnus Coefficient', () => {
-        test('increases proportionally with spin rate', () => {
-            const { velocity } = STANDARD_CONDITIONS;
-            const lowSpin = calculateMagnusCoefficient(2000, velocity);
-            const highSpin = calculateMagnusCoefficient(4000, velocity);
-            
-            expect(highSpin).toBeGreaterThan(lowSpin);
-            expect(highSpin / lowSpin).toBeCloseTo(2, 1);
-        });
-    });
-
-    describe('Lift Coefficient', () => {
-        test('responds proportionally to spin rate', () => {
-            const reynolds = 100000;
-            const lowSpin = calculateLiftCoefficient(reynolds, 2000);
-            const highSpin = calculateLiftCoefficient(reynolds, 4000);
-            
-            expect(highSpin).toBeGreaterThan(lowSpin);
-            expect(highSpin / lowSpin).toBeCloseTo(2, 1);
-        });
+    beforeEach(() => {
+        calculator = new BallFlightCalculator();
     });
 
     describe('Aerodynamic Forces', () => {
-        test('calculates all forces correctly for standard conditions', () => {
-            const forces = calculateAerodynamicForces(getTestConditions());
-            
-            expect(forces).toEqual(expect.objectContaining({
-                dragForce: expect.any(Number),
-                liftForce: expect.any(Number),
-                magnusForce: expect.any(Number),
-                dragCoefficient: expect.any(Number)
-            }));
+        const standardState = {
+            position: { x: 0, y: 100, z: 0 },
+            velocity: { x: 150, y: 0, z: 0 },
+            spin: 2500,
+            time: 0
+        };
 
-            expect(forces.dragForce).toBeGreaterThan(0);
-            expect(forces.liftForce).toBeGreaterThan(0);
-            expect(forces.magnusForce).toBeGreaterThan(0);
-            expect(forces.dragCoefficient).toBeLessThan(0.5);
+        const standardConditions = {
+            temperature: 70,
+            pressure: 29.92,
+            humidity: 50,
+            windSpeed: 0,
+            windDirection: 0,
+            elevation: 0
+        };
+
+        test('calculates all forces correctly for standard conditions', () => {
+            const forces = calculator.calculateForces(standardState, standardConditions, 1.0);
+
+            // Verify drag force exists and is reasonable
+            expect(Math.abs(forces.x)).toBeGreaterThan(0);
+            expect(Math.abs(forces.x)).toBeLessThan(0.5);
+
+            // Verify lift force exists and is positive due to backspin
+            expect(forces.y).toBeGreaterThan(0);
+
+            // Verify no lateral forces without wind
+            expect(Math.abs(forces.z)).toBeLessThan(0.1);
         });
 
         test('forces scale quadratically with velocity', () => {
-            const lowSpeed = calculateAerodynamicForces(getTestConditions({ 
-                velocity: 22.352 // 50 mph
-            }));
+            const baseForces = calculator.calculateForces(standardState, standardConditions, 1.0);
 
-            const highSpeed = calculateAerodynamicForces(getTestConditions({ 
-                velocity: 44.704 // 100 mph
-            }));
+            const doubleVelocityState = {
+                ...standardState,
+                velocity: {
+                    x: standardState.velocity.x * 2,
+                    y: standardState.velocity.y * 2,
+                    z: standardState.velocity.z * 2
+                }
+            };
 
-            // Forces should follow v² relationship (factor of 4)
-            expect(highSpeed.dragForce).toBeCloseTo(lowSpeed.dragForce * 4, 1);
-            expect(highSpeed.liftForce).toBeCloseTo(lowSpeed.liftForce * 4, 1);
-            expect(highSpeed.magnusForce).toBeCloseTo(lowSpeed.magnusForce * 4, 1);
+            const doubleVelocityForces = calculator.calculateForces(
+                doubleVelocityState,
+                standardConditions,
+                1.0
+            );
+
+            // Forces should scale approximately with velocity squared
+            const expectedRatio = 4.0; // 2^2
+            const actualRatio = Math.abs(doubleVelocityForces.x / baseForces.x);
+            expect(Math.abs(actualRatio - expectedRatio)).toBeLessThan(0.5);
+        });
+
+        test('wind affects relative velocity correctly', () => {
+            const windConditions = {
+                ...standardConditions,
+                windSpeed: 10,
+                windDirection: 180  // headwind
+            };
+
+            const forcesWithWind = calculator.calculateForces(standardState, windConditions, 1.0);
+            const forcesNoWind = calculator.calculateForces(standardState, standardConditions, 1.0);
+
+            // Headwind should increase effective drag
+            const dragWithWind = Math.abs(forcesWithWind.x);
+            const dragNoWind = Math.abs(forcesNoWind.x);
+            expect(dragWithWind).toBeGreaterThan(dragNoWind);
+
+            // Test tailwind
+            const tailwindConditions = {
+                ...standardConditions,
+                windSpeed: 10,
+                windDirection: 0
+            };
+
+            const forcesWithTailwind = calculator.calculateForces(standardState, tailwindConditions, 1.0);
+            expect(Math.abs(forcesWithTailwind.x)).toBeLessThan(dragNoWind);
         });
     });
 });

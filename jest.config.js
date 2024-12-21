@@ -1,13 +1,54 @@
-export default {
+/** @type {import('ts-jest').JestConfigWithTsJest} */
+module.exports = {
+    preset: 'ts-jest',
     testEnvironment: 'node',
+    roots: ['<rootDir>/src', '<rootDir>/tests'],
     transform: {
-        '^.+\\.jsx?$': 'babel-jest'
+        '^.+\\.tsx?$': ['ts-jest', {
+            tsconfig: 'tsconfig.test.json',
+            isolatedModules: true,
+            diagnostics: {
+                ignoreCodes: [1343]  // Ignore 'import assignment cannot be used when targeting ECMAScript modules'
+            },
+            transformMode: {
+                web: [/\.[jt]sx?$/]
+            }
+        }],
+        '^.+\\.jsx?$': ['babel-jest', {
+            presets: [
+                ['@babel/preset-env', { targets: { node: 'current' }, modules: 'commonjs' }],
+                '@babel/preset-typescript'
+            ],
+            plugins: [
+                '@babel/plugin-transform-modules-commonjs'
+            ]
+        }]
     },
-    moduleFileExtensions: ['js', 'json', 'jsx', 'node'],
-    testMatch: ['**/tests/**/*.test.js'],
-    collectCoverage: true,
-    coverageDirectory: 'coverage',
-    coverageReporters: ['text', 'lcov'],
+    moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1'
+    },
+    testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.[jt]sx?$',
+    moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+    transformIgnorePatterns: [
+        'node_modules/(?!(lodash-es)/)'
+    ],
+    globals: {
+        'ts-jest': {
+            isolatedModules: true,
+            tsconfig: 'tsconfig.test.json'
+        }
+    },
+    setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+    testPathIgnorePatterns: [
+        '/node_modules/',
+        '/dist/',
+        '/coverage/'
+    ],
+    collectCoverageFrom: [
+        'src/**/*.{js,jsx,ts,tsx}',
+        '!src/**/*.d.ts',
+        '!src/types/**/*'
+    ],
     coverageThreshold: {
         global: {
             branches: 80,
@@ -17,10 +58,10 @@ export default {
         }
     },
     verbose: true,
-    transformIgnorePatterns: [
-        'node_modules/(?!(module-that-needs-to-be-transformed)/)'
-    ],
-    moduleNameMapper: {
-        '^(\\.{1,2}/.*)\\.js$': '$1'
+    testTimeout: 30000,
+    moduleDirectories: ['node_modules', 'src'],
+    resolver: undefined,
+    testEnvironmentOptions: {
+        url: 'http://localhost'
     }
 };

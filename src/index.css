@@ -1,0 +1,225 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables */
+:root {
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --navigation-height: 4rem;
+  --page-spacing: 1rem;
+}
+
+/* Global Styles */
+body {
+  @apply bg-gray-900 text-white antialiased overscroll-none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior-y: none;
+}
+
+/* Enhanced Mobile Touch Areas */
+@media (max-width: 768px) {
+  button, a, [role="button"] {
+    @apply min-h-[2.75rem] min-w-[2.75rem] flex items-center justify-center;
+  }
+  
+  input, select, textarea {
+    @apply min-h-[2.75rem];
+    font-size: 16px !important; /* Prevents iOS zoom */
+  }
+}
+
+/* Safe Area Padding */
+.pb-safe {
+  padding-bottom: calc(1rem + var(--safe-area-inset-bottom));
+}
+
+/* Page Transitions */
+.page-transition {
+  @apply min-h-screen w-full;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Touch Feedback */
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Smooth Scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  * {
+    user-select: none;
+  }
+  
+  input, textarea {
+    user-select: text;
+  }
+
+  .touch-feedback:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease-in-out;
+  }
+}
+
+/* Enhanced Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Page Transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Pull to Refresh */
+.ptr-element {
+  @apply fixed top-0 left-0 right-0 h-16 flex items-center justify-center bg-green-600/20 backdrop-blur-sm z-50;
+  transform: translateY(-100%);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ptr-refresh {
+  transform: translateY(0);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced Custom Components */
+.card {
+  @apply bg-gray-800/90 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-700/20 overflow-hidden;
+  transform: translateZ(0); /* Hardware acceleration */
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-interactive {
+  @apply active:scale-[0.98] hover:scale-[1.02] touch-feedback;
+  will-change: transform;
+}
+
+.button {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  transform: translateZ(0);
+}
+
+.button-primary {
+  @apply bg-green-600 text-white active:bg-green-700 active:scale-95;
+  background-image: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(0,0,0,0.1));
+}
+
+.button-secondary {
+  @apply bg-gray-700 text-gray-200 active:bg-gray-800 active:scale-95;
+  background-image: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(0,0,0,0.1));
+}
+
+/* Mobile Gestures */
+.swipe-container {
+  @apply touch-pan-y overflow-hidden;
+  overscroll-behavior-y: contain;
+}
+
+.bottom-sheet {
+  @apply fixed bottom-0 left-0 right-0 bg-gray-800 rounded-t-3xl shadow-2xl;
+  transform: translateZ(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-sheet-handle {
+  @apply w-12 h-1 bg-gray-600 rounded-full mx-auto my-3;
+}
+
+.input {
+  @apply bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200;
+}
+
+/* Loading States */
+.loading {
+  @apply animate-pulse bg-gray-700/50;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}

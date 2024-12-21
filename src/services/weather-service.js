@@ -9,7 +9,7 @@ import { WeatherError } from '../utils/errors';
 
 class WeatherService {
     constructor() {
-        this.apiKey = process.env.TOMORROW_API_KEY;
+        this.apiKey = process.env.TOMORROW_IO_API_KEY;
         this.baseUrl = 'https://api.tomorrow.io/v4';
         this.cache = new LocalStorage('weather_cache');
         this.retryAttempts = 3;

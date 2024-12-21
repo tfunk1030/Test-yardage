@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./*.{html,js}"],
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./public/index.html"
+  ],
   theme: {
     extend: {
       colors: {
@@ -11,8 +14,8 @@ module.exports = {
           300: '#7dd3fc',
           400: '#38bdf8',
           500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
+          600: '#2563eb',
+          700: '#1d4ed8',
           800: '#075985',
           900: '#0c4a6e',
         },

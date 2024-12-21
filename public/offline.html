@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Golf Yardage Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .container {
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: #4f46e5;
+        }
+
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #d1d5db;
+            margin-bottom: 2rem;
+        }
+
+        .icon {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 2rem;
+        }
+
+        .button {
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .button:hover {
+            background-color: #4338ca;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+            text-align: left;
+        }
+
+        .feature {
+            background-color: #27272a;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+        }
+
+        .feature h3 {
+            color: #4f46e5;
+            margin-top: 0;
+        }
+
+        .feature p {
+            margin-bottom: 0;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        
+        <h1>You're Offline</h1>
+        <p>
+            It looks like you've lost your internet connection. Don't worry - you can still access your saved calculations
+            and previous results while offline.
+        </p>
+        
+        <a href="/" class="button">Try Again</a>
+
+        <div class="features">
+            <div class="feature">
+                <h3>Offline Access</h3>
+                <p>
+                    Your recent calculations and club data are safely stored and accessible even without an internet connection.
+                </p>
+            </div>
+            
+            <div class="feature">
+                <h3>Sync Later</h3>
+                <p>
+                    Any new calculations you make while offline will automatically sync when you're back online.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

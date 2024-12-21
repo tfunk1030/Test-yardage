@@ -59,6 +59,39 @@ export function calculateWindEffect(windSpeed, windDirection, shotDistance, shot
 }
 
 /**
+ * Calculate wind angle from direction string
+ * @param {string} windDirection Wind direction (N, S, E, W, NE, etc.)
+ * @returns {number} Wind angle in degrees
+ */
+export function calculateWindAngle(windDirection) {
+    const directionMap = {
+        'N': 0,
+        'NNE': 22.5,
+        'NE': 45,
+        'ENE': 67.5,
+        'E': 90,
+        'ESE': 112.5,
+        'SE': 135,
+        'SSE': 157.5,
+        'S': 180,
+        'SSW': 202.5,
+        'SW': 225,
+        'WSW': 247.5,
+        'W': 270,
+        'WNW': 292.5,
+        'NW': 315,
+        'NNW': 337.5
+    };
+
+    const direction = windDirection.toUpperCase();
+    if (!(direction in directionMap)) {
+        throw new Error('Invalid wind direction');
+    }
+
+    return directionMap[direction];
+}
+
+/**
  * Calculate effective wind speed at altitude
  * @param {number} windSpeed - Wind speed in mph
  * @param {number} altitude - Altitude in feet

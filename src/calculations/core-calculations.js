@@ -4,42 +4,24 @@
  */
 
 /**
- * Calculate wind effect on shot distance and direction
- * @param {number} windSpeed - Wind speed in mph
- * @param {string} windDirection - Wind direction (N, S, E, W, NE, etc.)
- * @param {string} shotHeight - Shot trajectory height (low, medium, high)
- * @returns {Object} Distance and lateral effects
+ * Calculate wind effect on ball trajectory
+ * @param {number} windSpeed Wind speed in mph
+ * @param {number} windDirection Wind direction in degrees
+ * @returns {Object} Wind effect on distance and lateral movement
  */
-export function calculateWindEffect(windSpeed, windDirection, shotHeight = 'medium') {
-    // Input validation
-    if (typeof windSpeed !== 'number' || isNaN(windSpeed)) {
-        throw new Error('Shot distance must be a valid number');
-    }
+export function calculateWindEffect(windSpeed, windDirection) {
+    // Convert wind direction to radians
+    const windRad = windDirection * Math.PI / 180;
     
-    // Height-specific adjustments
-    const heightMultipliers = {
-        'low': 0.65,
-        'medium': 1.0,
-        'high': 1.35
-    };
+    // Calculate headwind/tailwind and crosswind components
+    const headwind = windSpeed * Math.cos(windRad);
+    const crosswind = windSpeed * Math.sin(windRad);
     
-    // Convert wind speed to number
-    const speed = Number(windSpeed);
+    // Calculate distance effect (positive for tailwind, negative for headwind)
+    const distanceEffect = -headwind * 0.0068; // Calibrated coefficient
     
-    // Get wind angle and calculate components
-    const angle = calculateWindAngle(windDirection);
-    const headwindComponent = Math.cos(angle * Math.PI / 180) * speed;
-    const crosswindComponent = Math.sin(angle * Math.PI / 180) * speed;
-    
-    // Calculate base effects
-    const baseWindEffect = -0.0065; // Negative for headwind effect
-    const crosswindFactor = 0.0045;
-    
-    let heightMultiplier = heightMultipliers[shotHeight] || 1.0;
-    
-    // Calculate final effects
-    const distanceEffect = headwindComponent * baseWindEffect * heightMultiplier;
-    const lateralEffect = crosswindComponent * crosswindFactor * heightMultiplier;
+    // Calculate lateral effect
+    const lateralEffect = crosswind * 0.068; // Calibrated coefficient
     
     return {
         distanceEffect,
@@ -48,55 +30,69 @@ export function calculateWindEffect(windSpeed, windDirection, shotHeight = 'medi
 }
 
 /**
- * Calculate altitude effect on shot distance
- * @param {number} altitude - Altitude in feet
- * @returns {number} Altitude effect (multiplier)
+ * Calculate altitude effect on ball flight
+ * @param {number} altitude Altitude in feet
+ * @returns {Object} Altitude effect factors
  */
-export function calculateAltitudeEffect(altitude = 0) {
-    if (altitude < 0) {
-        throw new Error('Altitude must be non-negative');
-    }
+export function calculateAltitudeEffect(altitude) {
+    if (altitude < 0) return { total: 1, density: 1, carry: 1 };
     
-    // Convert to number and handle invalid input
-    const alt = Number(altitude);
-    if (isNaN(alt)) {
-        return 1.0;
-    }
+    // Calculate air density ratio (exponential decay model)
+    const densityRatio = Math.exp(-altitude / 29000);
     
-    // Base effect: 2.2% per 1000ft
-    const baseEffect = (alt / 1000) * 0.022;
+    // Calculate carry distance factor (empirical model)
+    const carryFactor = 1 + (1 - densityRatio) * 1.17;
     
-    // Progressive effect for higher altitudes
-    let progressiveEffect = 0;
-    if (alt > 5000) {
-        progressiveEffect = ((alt - 5000) / 1000) * 0.001;
-    }
+    // Calculate total effect
+    const totalEffect = carryFactor / densityRatio;
     
-    return 1 + baseEffect + progressiveEffect;
+    return {
+        total: totalEffect,
+        density: densityRatio,
+        carry: carryFactor
+    };
 }
 
 /**
- * Calculate air density ratio compared to sea level
- * @param {Object} conditions - Weather conditions
- * @returns {number} Air density ratio
+ * Calculate air density ratio based on altitude
+ * @param {number} altitude Altitude in feet
+ * @returns {number} Air density ratio (relative to sea level)
  */
-export function calculateAirDensityRatio(conditions) {
-    const standardTemp = 59;
-    const standardPressure = 29.92;
-    const standardHumidity = 50;
+export function calculateAirDensityRatio(altitude) {
+    if (altitude < 0) return 1;
+    return Math.exp(-altitude / 29000);
+}
+
+/**
+ * Calculate air density based on conditions
+ * @param {Object} params Environmental parameters
+ * @returns {number} Air density in kg/m³
+ */
+export function calculateAirDensity(params) {
+    const {
+        temperature = 20, // °C
+        pressure = 101325, // Pa
+        humidity = 50, // %
+        altitude = 0 // meters
+    } = params;
     
-    const tempRankine = (conditions.temp || standardTemp) + 459.67;
-    const standardTempRankine = standardTemp + 459.67;
+    // Convert temperature to Kelvin
+    const T = temperature + 273.15;
     
-    const pressureRatio = Math.pow((conditions.pressure || standardPressure) / standardPressure, 0.45);
-    const temperatureRatio = Math.pow(standardTempRankine / tempRankine, 0.5);
+    // Calculate saturation vapor pressure (Magnus formula)
+    const es = 611.2 * Math.exp(17.67 * temperature / (temperature + 243.5));
     
-    const humidity = conditions.humidity || standardHumidity;
-    const humidityFactor = 1 - ((humidity - standardHumidity) / 100 * 0.008);
+    // Calculate actual vapor pressure
+    const e = es * (humidity / 100);
     
-    const densityRatio = (pressureRatio * temperatureRatio * humidityFactor);
+    // Calculate pressure at altitude (barometric formula)
+    const p = pressure * Math.exp(-0.0289644 * altitude / (8.31447 * T));
     
-    return Math.round(densityRatio * 1000) / 1000;
+    // Calculate air density using enhanced equation
+    const Rd = 287.058; // Gas constant for dry air
+    const Rv = 461.495; // Gas constant for water vapor
+    
+    return (p - e) / (Rd * T) + e / (Rv * T);
 }
 
 /**

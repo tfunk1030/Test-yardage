@@ -2,12 +2,13 @@
  * Worker Pool for parallel physics calculations
  */
 
-import { Worker } from 'node:worker_threads';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+// Import worker threads polyfill
+import Worker from 'worker_threads';
+import { parse, format } from 'url';
+import path from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __filename = typeof document === 'undefined' ? new URL(import.meta.url).pathname : '';
+const __dirname = typeof document === 'undefined' ? path.dirname(__filename) : '';
 
 export class WorkerPool {
     constructor(size = 4) {
@@ -15,13 +16,19 @@ export class WorkerPool {
         this.workers = [];
         this.taskQueue = [];
         this.activeWorkers = 0;
+        this.initialize();
+    }
 
-        // Initialize workers
-        for (let i = 0; i < size; i++) {
-            const worker = new Worker(join(__dirname, 'physics-worker.js'));
+    initialize() {
+        for (let i = 0; i < this.size; i++) {
+            const worker = new Worker(path.join(__dirname, 'physics-worker.js'));
             worker.on('message', this.handleWorkerMessage.bind(this));
             worker.on('error', this.handleWorkerError.bind(this));
-            this.workers.push(worker);
+            this.workers.push({
+                worker,
+                busy: false,
+                currentTask: null
+            });
         }
     }
 
@@ -46,7 +53,7 @@ export class WorkerPool {
         if (worker) {
             worker.busy = true;
             this.activeWorkers++;
-            worker.postMessage(taskWrapper.task);
+            worker.worker.postMessage(taskWrapper.task);
             worker.currentTask = taskWrapper;
         }
     }
@@ -86,7 +93,7 @@ export class WorkerPool {
     }
 
     terminate() {
-        this.workers.forEach(worker => worker.terminate());
+        this.workers.forEach(worker => worker.worker.terminate());
         this.workers = [];
         this.taskQueue = [];
         this.activeWorkers = 0;
